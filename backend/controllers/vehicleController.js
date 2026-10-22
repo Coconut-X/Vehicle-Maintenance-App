@@ -1,4 +1,6 @@
 const Vehicle = require("../models/Vehicle");
+const CatalogueItem = require("../models/CatalogueItem");
+const ScheduleEntry = require("../models/ScheduleEntry");
 
 const isWholeNumber = (v, min, max) => {
   const n = Number(v);
@@ -78,6 +80,22 @@ const createVehicle = async (req, res) => {
   data.odometerDate = new Date();
 
   const vehicle = await Vehicle.create(data);
+
+  //copy every catalogue item into this vehicles schedule
+  //copying instead of linking so changing a default later wont move existing due dates
+  const items = await CatalogueItem.find();
+  const entries = items.map((item) => ({
+    owner: req.userId,
+    vehicle: vehicle._id,
+    item: item._id,
+    intervalKm: item.defaultIntervalKm,
+    intervalMonths: item.defaultIntervalMonths,
+    baselineDate: vehicle.odometerDate,
+    baselineKm: vehicle.odometerKm,
+    baselineSource: "initial",
+  }));
+  await ScheduleEntry.insertMany(entries);
+
   res.status(201).json({ vehicle });
 };
 
@@ -93,6 +111,19 @@ const getVehicle = async (req, res) => {
     return res.status(404).json({ message: "vehicle not found" });
   }
   res.json({ vehicle });
+};
+
+const getSchedule = async (req, res) => {
+  const vehicle = await Vehicle.findOne({ _id: req.params.id, owner: req.userId });
+  if (!vehicle) {
+    return res.status(404).json({ message: "vehicle not found" });
+  }
+
+  const schedule = await ScheduleEntry.find({ vehicle: vehicle._id, owner: req.userId }).populate(
+    "item",
+    "name category notes"
+  );
+  res.json({ schedule });
 };
 
 const updateVehicle = async (req, res) => {
@@ -136,4 +167,4 @@ const deleteVehicle = async (req, res) => {
   res.json({ message: "vehicle deleted" });
 };
 
-module.exports = { createVehicle, getVehicles, getVehicle, updateVehicle, deleteVehicle };
+module.exports = { createVehicle, getVehicles, getVehicle, getSchedule, updateVehicle, deleteVehicle };

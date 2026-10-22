@@ -3,6 +3,7 @@ const {
   createVehicle,
   getVehicles,
   getVehicle,
+  getSchedule,
   updateVehicle,
   deleteVehicle,
 } = require("../controllers/vehicleController");
@@ -16,6 +17,7 @@ router.use(protect);
 router.get("/", getVehicles);
 router.post("/", createVehicle);
 router.get("/:id", getVehicle);
+router.get("/:id/schedule", getSchedule);
 router.put("/:id", updateVehicle);
 router.delete("/:id", deleteVehicle);
 
