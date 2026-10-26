@@ -8,6 +8,7 @@ const {
   deleteVehicle,
 } = require("../controllers/vehicleController");
 const protect = require("../middleware/authMiddleware");
+const { uploadPhoto } = require("../middleware/uploadMiddleware");
 
 const router = express.Router();
 
@@ -15,10 +16,10 @@ const router = express.Router();
 router.use(protect);
 
 router.get("/", getVehicles);
-router.post("/", createVehicle);
+router.post("/", uploadPhoto, createVehicle);
 router.get("/:id", getVehicle);
 router.get("/:id/schedule", getSchedule);
-router.put("/:id", updateVehicle);
+router.put("/:id", uploadPhoto, updateVehicle);
 router.delete("/:id", deleteVehicle);
 
 module.exports = router;

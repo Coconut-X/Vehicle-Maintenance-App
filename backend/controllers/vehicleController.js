@@ -1,6 +1,7 @@
 const Vehicle = require("../models/Vehicle");
 const CatalogueItem = require("../models/CatalogueItem");
 const ScheduleEntry = require("../models/ScheduleEntry");
+const { uploadImage, deleteImage } = require("../config/cloudinary");
 
 const isWholeNumber = (v, min, max) => {
   const n = Number(v);
@@ -64,6 +65,24 @@ const regTaken = async (owner, registrationNo, skipId) => {
 
 const regError = { message: "registration number already in your garage", errors: { registrationNo: "you already have a vehicle with this registration number" } };
 
+//uploads the photo if one was sent, returns a warning instead of failing
+//losing the whole vehicle because of a photo would be worse
+const savePhoto = async (vehicle, file) => {
+  if (!file) return null;
+  try {
+    const oldId = vehicle.photoId;
+    const photo = await uploadImage(file.buffer, "carvault/vehicles");
+    vehicle.photoUrl = photo.url;
+    vehicle.photoId = photo.id;
+    await vehicle.save();
+    await deleteImage(oldId);
+    return null;
+  } catch (err) {
+    console.log("photo upload failed: " + (err.message || err));
+    return "vehicle saved but the photo could not be uploaded, try again later";
+  }
+};
+
 const createVehicle = async (req, res) => {
   const body = req.body || {};
   const errors = validateVehicle(body, false);
@@ -96,7 +115,8 @@ const createVehicle = async (req, res) => {
   }));
   await ScheduleEntry.insertMany(entries);
 
-  res.status(201).json({ vehicle });
+  const warning = await savePhoto(vehicle, req.file);
+  res.status(201).json({ vehicle, warning });
 };
 
 const getVehicles = async (req, res) => {
@@ -156,7 +176,9 @@ const updateVehicle = async (req, res) => {
 
   Object.assign(vehicle, data);
   await vehicle.save();
-  res.json({ vehicle });
+
+  const warning = await savePhoto(vehicle, req.file);
+  res.json({ vehicle, warning });
 };
 
 const deleteVehicle = async (req, res) => {
