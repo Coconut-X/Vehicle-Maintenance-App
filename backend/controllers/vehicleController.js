@@ -186,6 +186,12 @@ const deleteVehicle = async (req, res) => {
   if (!vehicle) {
     return res.status(404).json({ message: "vehicle not found" });
   }
+
+  //remove everything that belongs to this vehicle so nothing is left orphaned
+  //service records and reminder logs get added here when those models exist
+  await ScheduleEntry.deleteMany({ vehicle: vehicle._id, owner: req.userId });
+  await deleteImage(vehicle.photoId);
+
   res.json({ message: "vehicle deleted" });
 };
 
