@@ -1,6 +1,7 @@
 const Vehicle = require("../models/Vehicle");
 const CatalogueItem = require("../models/CatalogueItem");
 const ScheduleEntry = require("../models/ScheduleEntry");
+const ServiceRecord = require("../models/ServiceRecord");
 const { uploadImage, deleteImage } = require("../config/cloudinary");
 const { projectionInfo } = require("../utils/projection");
 const { calcDue } = require("../utils/dueDate");
@@ -205,8 +206,15 @@ const deleteVehicle = async (req, res) => {
   }
 
   //remove everything that belongs to this vehicle so nothing is left orphaned
-  //service records and reminder logs get added here when those models exist
+  //reminder logs get added here when that model exists
   await ScheduleEntry.deleteMany({ vehicle: vehicle._id, owner: req.userId });
+
+  const records = await ServiceRecord.find({ vehicle: vehicle._id, owner: req.userId });
+  for (const record of records) {
+    await deleteImage(record.receiptId);
+  }
+  await ServiceRecord.deleteMany({ vehicle: vehicle._id, owner: req.userId });
+
   await deleteImage(vehicle.photoId);
 
   res.json({ message: "vehicle deleted" });

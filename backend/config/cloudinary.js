@@ -7,9 +7,10 @@ cloudinary.config({
 });
 
 //multer keeps the file in memory so we send the buffer straight to cloudinary
+//resource type auto so pdf receipts work too
 const uploadImage = (buffer, folder) => {
   return new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream({ folder }, (err, result) => {
+    const stream = cloudinary.uploader.upload_stream({ folder, resource_type: "auto" }, (err, result) => {
       if (err) return reject(err);
       resolve({ url: result.secure_url, id: result.public_id });
     });
