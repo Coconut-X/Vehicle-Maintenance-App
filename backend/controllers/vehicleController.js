@@ -4,6 +4,7 @@ const ScheduleEntry = require("../models/ScheduleEntry");
 const { uploadImage, deleteImage } = require("../config/cloudinary");
 const { projectionInfo } = require("../utils/projection");
 const { calcDue } = require("../utils/dueDate");
+const { getStatus, worstStatus } = require("../utils/status");
 
 const isWholeNumber = (v, min, max) => {
   const n = Number(v);
@@ -146,14 +147,20 @@ const getSchedule = async (req, res) => {
     "name category notes"
   );
 
-  //add the computed due point to every entry
+  //add the computed due point and status to every entry
   const now = new Date();
-  const result = schedule.map((entry) => ({
-    ...entry.toObject(),
-    due: entry.enabled ? calcDue(entry, vehicle, now) : null,
-  }));
+  const result = schedule.map((entry) => {
+    if (!entry.enabled) {
+      return { ...entry.toObject(), due: null, status: "disabled" };
+    }
+    const due = calcDue(entry, vehicle, now);
+    return { ...entry.toObject(), due, status: getStatus(due) };
+  });
 
-  res.json({ schedule: result });
+  //disabled items dont count towards the vehicle status
+  const summary = worstStatus(result.filter((e) => e.enabled).map((e) => e.status));
+
+  res.json({ schedule: result, summary });
 };
 
 const updateVehicle = async (req, res) => {
