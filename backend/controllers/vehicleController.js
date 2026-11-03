@@ -3,6 +3,7 @@ const CatalogueItem = require("../models/CatalogueItem");
 const ScheduleEntry = require("../models/ScheduleEntry");
 const { uploadImage, deleteImage } = require("../config/cloudinary");
 const { projectionInfo } = require("../utils/projection");
+const { calcDue } = require("../utils/dueDate");
 
 const isWholeNumber = (v, min, max) => {
   const n = Number(v);
@@ -144,7 +145,15 @@ const getSchedule = async (req, res) => {
     "item",
     "name category notes"
   );
-  res.json({ schedule });
+
+  //add the computed due point to every entry
+  const now = new Date();
+  const result = schedule.map((entry) => ({
+    ...entry.toObject(),
+    due: entry.enabled ? calcDue(entry, vehicle, now) : null,
+  }));
+
+  res.json({ schedule: result });
 };
 
 const updateVehicle = async (req, res) => {
