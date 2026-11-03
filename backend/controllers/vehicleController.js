@@ -2,6 +2,7 @@ const Vehicle = require("../models/Vehicle");
 const CatalogueItem = require("../models/CatalogueItem");
 const ScheduleEntry = require("../models/ScheduleEntry");
 const { uploadImage, deleteImage } = require("../config/cloudinary");
+const { projectionInfo } = require("../utils/projection");
 
 const isWholeNumber = (v, min, max) => {
   const n = Number(v);
@@ -130,7 +131,7 @@ const getVehicle = async (req, res) => {
   if (!vehicle) {
     return res.status(404).json({ message: "vehicle not found" });
   }
-  res.json({ vehicle });
+  res.json({ vehicle, projection: projectionInfo(vehicle) });
 };
 
 const getSchedule = async (req, res) => {
