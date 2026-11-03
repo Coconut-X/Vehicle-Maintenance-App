@@ -7,6 +7,7 @@ const vehicleRoutes = require("./routes/vehicleRoutes");
 const catalogueRoutes = require("./routes/catalogueRoutes");
 const scheduleRoutes = require("./routes/scheduleRoutes");
 const serviceRoutes = require("./routes/serviceRoutes");
+const dashboardRoutes = require("./routes/dashboardRoutes");
 const { notFound, errorHandler } = require("./middleware/errorMiddleware");
 
 const app = express();
@@ -24,6 +25,7 @@ app.use("/api/vehicles", vehicleRoutes);
 app.use("/api/catalogue", catalogueRoutes);
 app.use("/api/schedule", scheduleRoutes);
 app.use("/api/services", serviceRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 //these two must stay after all routes
 app.use(notFound);
