@@ -2,6 +2,9 @@ const ServiceRecord = require("../models/ServiceRecord");
 const Vehicle = require("../models/Vehicle");
 const CatalogueItem = require("../models/CatalogueItem");
 const { uploadImage, deleteImage } = require("../config/cloudinary");
+const { resetBaseline, updateOdometer, recalcUsage } = require("../utils/serviceSync");
+const { calcDue } = require("../utils/dueDate");
+const { getStatus } = require("../utils/status");
 
 const isWholeNumber = (v, min, max) => {
   const n = Number(v);
@@ -86,6 +89,19 @@ const saveReceipt = async (record, file) => {
   }
 };
 
+//after any change to history, reset the item baseline, update odometer and usage
+//returns the new due point of the item so the client can show it straight away
+const syncAfterChange = async (vehicle, itemId, record) => {
+  const entry = await resetBaseline(vehicle._id, itemId);
+  if (record) updateOdometer(vehicle, record);
+  await recalcUsage(vehicle);
+  await vehicle.save();
+
+  if (!entry || !entry.enabled) return null;
+  const due = calcDue(entry, vehicle);
+  return { ...due, status: getStatus(due) };
+};
+
 const pickFields = (body) => {
   const data = {};
   ["serviceDate", "odometerKm", "workshop", "cost", "notes"].forEach((field) => {
@@ -135,9 +151,11 @@ const createService = async (req, res) => {
   data.item = item._id;
   const record = await ServiceRecord.create(data);
 
+  const due = await syncAfterChange(vehicle, item._id, record);
+
   const warning = await saveReceipt(record, req.file);
   await record.populate("item", "name category");
-  res.status(201).json({ record, warning });
+  res.status(201).json({ record, due, warning });
 };
 
 //simple list for now, search and pagination come later
@@ -186,9 +204,11 @@ const updateService = async (req, res) => {
   Object.assign(record, data);
   await record.save();
 
+  const due = vehicle ? await syncAfterChange(vehicle, record.item, record) : null;
+
   const warning = await saveReceipt(record, req.file);
   await record.populate("item", "name category");
-  res.json({ record, warning });
+  res.json({ record, due, warning });
 };
 
 const deleteService = async (req, res) => {
@@ -197,7 +217,12 @@ const deleteService = async (req, res) => {
     return res.status(404).json({ message: "service record not found" });
   }
   await deleteImage(record.receiptId);
-  res.json({ message: "service record deleted" });
+
+  //baseline goes back to the previous record of the same item
+  const vehicle = await Vehicle.findById(record.vehicle);
+  const due = vehicle ? await syncAfterChange(vehicle, record.item, null) : null;
+
+  res.json({ message: "service record deleted", due });
 };
 
 module.exports = { createService, getServices, updateService, deleteService };
