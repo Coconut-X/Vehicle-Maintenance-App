@@ -6,6 +6,8 @@ const { uploadImage, deleteImage } = require("../config/cloudinary");
 const { projectionInfo } = require("../utils/projection");
 const { calcDue } = require("../utils/dueDate");
 const { getStatus, worstStatus } = require("../utils/status");
+const { evaluateVehicle } = require("../utils/vehicleStatus");
+const { getString, getPaging, escapeRegex, pageInfo } = require("../utils/listQuery");
 
 const isWholeNumber = (v, min, max) => {
   const n = Number(v);
@@ -123,9 +125,55 @@ const createVehicle = async (req, res) => {
   res.status(201).json({ vehicle, warning });
 };
 
+//search, status filter, sort and pagination
+//status is worked out in code not stored, so filtering and urgency sort happen after the query
+//fine for a personal garage of a few vehicles
 const getVehicles = async (req, res) => {
-  const vehicles = await Vehicle.find({ owner: req.userId }).sort({ createdAt: -1 });
-  res.json({ vehicles });
+  const { page, limit, skip } = getPaging(req.query);
+  const search = getString(req.query.search);
+  const status = getString(req.query.status);
+  const sort = getString(req.query.sort);
+
+  //owner first so nobody can see other peoples vehicles
+  const query = { owner: req.userId };
+  if (search) {
+    const regex = new RegExp(escapeRegex(search), "i");
+    query.$or = [{ make: regex }, { model: regex }, { nickname: regex }, { registrationNo: regex }];
+  }
+
+  const vehicles = await Vehicle.find(query).sort({ createdAt: -1 });
+  const entries = await ScheduleEntry.find({ owner: req.userId, enabled: true, vehicle: { $in: vehicles.map((v) => v._id) } });
+
+  const now = new Date();
+  let list = vehicles.map((v) => {
+    const own = entries.filter((e) => e.vehicle.toString() === v._id.toString());
+    const result = evaluateVehicle(v, own, now);
+    return {
+      ...v.toObject(),
+      projection: projectionInfo(v, now),
+      summary: result.summary,
+      counts: result.counts,
+      minDays: result.minDays,
+    };
+  });
+
+  const statuses = ["overdue", "due_soon", "unknown", "up_to_date"];
+  if (statuses.includes(status)) {
+    list = list.filter((v) => v.summary === status);
+  }
+
+  //unknown sort keys just keep the default newest first
+  if (sort === "name") {
+    list.sort((a, b) => (a.make + " " + a.model).localeCompare(b.make + " " + b.model));
+  } else if (sort === "year") {
+    list.sort((a, b) => b.year - a.year);
+  } else if (sort === "urgency") {
+    //vehicles with no due dates go last
+    list.sort((a, b) => (a.minDays == null ? Infinity : a.minDays) - (b.minDays == null ? Infinity : b.minDays));
+  }
+
+  const total = list.length;
+  res.json({ vehicles: list.slice(skip, skip + limit), ...pageInfo(total, page, limit) });
 };
 
 const getVehicle = async (req, res) => {

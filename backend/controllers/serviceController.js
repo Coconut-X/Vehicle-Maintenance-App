@@ -5,6 +5,7 @@ const { uploadImage, deleteImage } = require("../config/cloudinary");
 const { resetBaseline, updateOdometer, recalcUsage } = require("../utils/serviceSync");
 const { calcDue } = require("../utils/dueDate");
 const { getStatus } = require("../utils/status");
+const { getString, getPaging, escapeRegex, pageInfo } = require("../utils/listQuery");
 
 const isWholeNumber = (v, min, max) => {
   const n = Number(v);
@@ -158,18 +159,59 @@ const createService = async (req, res) => {
   res.status(201).json({ record, due, warning });
 };
 
-//simple list for now, search and pagination come later
+//history with search, filters, sort and pagination, all done in the database
 const getServices = async (req, res) => {
+  const { page, limit, skip } = getPaging(req.query);
+  const search = getString(req.query.search);
+  const category = getString(req.query.category);
+  const from = getString(req.query.from);
+  const to = getString(req.query.to);
+  const sort = getString(req.query.sort);
+  const order = getString(req.query.order) === "asc" ? 1 : -1;
+
+  //owner first so nobody can see other peoples records
   const query = { owner: req.userId };
-  if (isValidId(req.query.vehicle)) {
-    query.vehicle = req.query.vehicle;
+
+  if (isValidId(req.query.vehicle)) query.vehicle = req.query.vehicle;
+  if (isValidId(req.query.item)) query.item = req.query.item;
+
+  //category lives on the catalogue item so find those items first
+  if (category) {
+    const items = await CatalogueItem.find({ category }).select("_id");
+    const ids = items.map((i) => i._id.toString());
+    if (query.item) {
+      if (!ids.includes(query.item)) query.item = null;
+    } else {
+      query.item = { $in: ids };
+    }
   }
 
+  if (search) {
+    const regex = new RegExp(escapeRegex(search), "i");
+    query.$or = [{ workshop: regex }, { notes: regex }];
+  }
+
+  const fromDate = new Date(from);
+  const toDate = new Date(to);
+  if (from && !isNaN(fromDate.getTime())) query.serviceDate = { $gte: fromDate };
+  if (to && !isNaN(toDate.getTime())) {
+    //include the whole last day
+    toDate.setUTCHours(23, 59, 59, 999);
+    query.serviceDate = { ...query.serviceDate, $lte: toDate };
+  }
+
+  //unknown sort keys fall back to newest first
+  const sortBy = sort === "cost" ? { cost: order, serviceDate: -1 } : { serviceDate: order };
+
+  const total = await ServiceRecord.countDocuments(query);
   const records = await ServiceRecord.find(query)
-    .sort({ serviceDate: -1 })
+    .sort(sortBy)
+    .skip(skip)
+    .limit(limit)
     .populate("item", "name category")
     .populate("vehicle", "make model nickname registrationNo");
-  res.json({ records });
+
+  res.json({ records, ...pageInfo(total, page, limit) });
 };
 
 const updateService = async (req, res) => {
