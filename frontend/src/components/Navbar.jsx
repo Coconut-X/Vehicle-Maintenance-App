@@ -18,17 +18,22 @@ function Navbar() {
   return (
     <header className="sticky top-0 z-10 border-b border-line bg-paper/90 backdrop-blur">
       <nav className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
-        <div className="flex items-center gap-8">
+        <div className="flex items-center gap-4 sm:gap-6">
           <Link to="/" className="flex items-center gap-2">
             <span className="flex h-6 w-6 items-center justify-center bg-ink font-mono text-xs font-medium text-accent">
               cv
             </span>
-            <span className="font-semibold tracking-tight">carvault</span>
+            <span className="hidden font-semibold tracking-tight sm:inline">carvault</span>
           </Link>
           {token && (
-            <NavLink to="/dashboard" className={linkClass}>
-              Dashboard
-            </NavLink>
+            <>
+              <NavLink to="/dashboard" className={linkClass}>
+                Dashboard
+              </NavLink>
+              <NavLink to="/garage" className={linkClass}>
+                Garage
+              </NavLink>
+            </>
           )}
         </div>
 

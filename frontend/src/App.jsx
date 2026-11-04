@@ -9,6 +9,9 @@ import Home from './pages/Home'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
+import Garage from './pages/Garage'
+import VehicleForm from './pages/VehicleForm'
+import VehicleDetail from './pages/VehicleDetail'
 import NotFound from './pages/NotFound'
 
 function App() {
@@ -35,6 +38,10 @@ function App() {
 
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/garage" element={<Garage />} />
+            <Route path="/vehicles/new" element={<VehicleForm />} />
+            <Route path="/vehicles/:id" element={<VehicleDetail />} />
+            <Route path="/vehicles/:id/edit" element={<VehicleForm />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />
