@@ -9,6 +9,7 @@ const scheduleRoutes = require("./routes/scheduleRoutes");
 const serviceRoutes = require("./routes/serviceRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const { notFound, errorHandler } = require("./middleware/errorMiddleware");
+const { startReminderJob } = require("./jobs/reminderJob");
 
 const app = express();
 
@@ -37,4 +38,5 @@ connectDB().then(() => {
   app.listen(PORT, () => {
     console.log("server running on port " + PORT);
   });
+  startReminderJob();
 });
