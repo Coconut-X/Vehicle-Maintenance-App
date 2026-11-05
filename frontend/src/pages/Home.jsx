@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import CarScene from '../components/CarScene'
+import CarArt from '../components/CarArt'
 import { btnOutline, btnPrimary, labelClass } from '../components/ui'
 
 const facts = [
@@ -31,10 +32,10 @@ const steps = [
 ]
 
 const powertrainCards = [
-  { name: 'Petrol', code: 'ICE', items: 18, note: 'Oil, filters, spark plugs, timing belt, brakes, tyres and the rest.' },
-  { name: 'Hybrid', code: 'HEV', items: 19, note: 'Everything a petrol car needs, plus a yearly high voltage battery check.' },
-  { name: 'Plug-in hybrid', code: 'PHEV', items: 19, note: 'Same as a hybrid. The engine still needs oil even if you mostly charge.' },
-  { name: 'Electric', code: 'EV', items: 13, note: 'No oil, no spark plugs, no timing belt. Brakes, tyres, coolant and the battery stay.' },
+  { name: 'Petrol', value: 'petrol', items: 18, note: 'Oil, filters, spark plugs, timing belt, brakes, tyres and the rest.' },
+  { name: 'Hybrid', value: 'hybrid', items: 19, note: 'Everything a petrol car needs, plus a yearly high voltage battery check.' },
+  { name: 'Plug-in hybrid', value: 'phev', items: 19, note: 'Same as a hybrid. The engine still needs oil even if you mostly charge.' },
+  { name: 'Electric', value: 'electric', items: 13, note: 'No oil, no spark plugs, no timing belt. Brakes, tyres, coolant and the battery stay.' },
 ]
 
 const reminderStops = [
@@ -97,6 +98,11 @@ const useReveal = (ref) => {
   }, [ref])
 }
 
+const heroPrimary =
+  'inline-flex items-center justify-center bg-accent px-5 py-2.5 text-sm font-medium text-ink transition-colors hover:bg-white'
+const heroOutline =
+  'inline-flex items-center justify-center border border-white/40 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-white hover:text-ink'
+
 function Home() {
   const token = useSelector((state) => state.auth.token)
   const pageRef = useRef(null)
@@ -117,26 +123,44 @@ function Home() {
     </>
   )
 
+  //the hero is dark so its buttons are orange and white
+  const heroActions = token ? (
+    <Link to="/dashboard" className={heroPrimary}>
+      Open dashboard
+    </Link>
+  ) : (
+    <>
+      <Link to="/register" className={heroPrimary}>
+        Add your first car
+      </Link>
+      <Link to="/login" className={heroOutline}>
+        Log in
+      </Link>
+    </>
+  )
+
   return (
     <div ref={pageRef} className="overflow-x-hidden">
-      {/*hero*/}
-      <section className="mx-auto grid max-w-6xl items-center gap-10 px-6 pb-16 pt-12 md:grid-cols-[1fr_1.1fr] md:pb-24 md:pt-20">
-        <div>
-          <p className={labelClass + ' !text-accent'}>car maintenance, tracked</p>
-          <h1 className="mt-4 text-4xl font-semibold leading-[1.05] tracking-tight md:text-6xl">
-            Your car runs on two clocks. We watch both.
-          </h1>
-          <p className="mt-5 max-w-md text-muted">
-            Engine oil is due at 5,000 km or six months, whichever comes first. CarVault tracks every service item by
-            kilometre and by date, works out today&apos;s odometer for you, and emails you before anything falls due.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">{actions}</div>
+      {/*hero, dark like a car brand site at night*/}
+      <section className="bg-[#0e0e0d] text-white">
+        <div className="mx-auto grid max-w-6xl items-center gap-10 px-6 pb-16 pt-14 md:grid-cols-[1.15fr_1fr] md:pb-20 md:pt-20">
+          <div>
+            <p className="font-mono text-[11px] uppercase tracking-widest text-accent">car maintenance, tracked by km and by date</p>
+            <h1 className="mt-5 text-4xl font-bold uppercase leading-[0.95] md:text-5xl lg:text-[3.5rem]">
+              Your car runs on two clocks. <span className="text-accent">We watch both.</span>
+            </h1>
+            <p className="mt-6 max-w-md text-white/60">
+              Engine oil is due at 5,000 km or six months, whichever comes first. CarVault tracks every service item by
+              kilometre and by date, works out today&apos;s odometer for you, and emails you before anything falls due.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">{heroActions}</div>
+          </div>
+          <CarScene />
         </div>
-        <CarScene />
       </section>
 
       {/*facts strip*/}
-      <section className="border-y border-line bg-ink text-white">
+      <section className="border-b border-line border-t border-t-white/10 bg-ink text-white">
         <div className="mx-auto grid max-w-6xl grid-cols-2 md:grid-cols-4">
           {facts.map((f, i) => (
             <div key={f.label} data-reveal className={'px-6 py-6 ' + (i % 2 === 1 ? 'border-l border-white/15 ' : '') + (i === 2 ? 'border-t border-white/15 md:border-l md:border-t-0' : i === 3 ? 'border-t border-white/15 md:border-t-0' : '')}>
@@ -208,14 +232,16 @@ function Home() {
         </div>
         <div className="mt-10 grid grid-cols-1 gap-px border border-line bg-line sm:grid-cols-2 lg:grid-cols-4">
           {powertrainCards.map((p) => (
-            <div key={p.code} data-reveal className="bg-card p-5">
-              <div className="flex items-baseline justify-between gap-3">
-                <p className="font-medium">{p.name}</p>
-                <span className="border border-ink px-1.5 py-0.5 font-mono text-[11px]">{p.code}</span>
+            <div key={p.value} data-reveal className="bg-card">
+              <div className="aspect-[16/8] border-b border-line">
+                <CarArt powertrain={p.value} />
               </div>
-              <p className="mt-4 font-mono text-3xl tabular-nums">{p.items}</p>
-              <p className={labelClass}>service items</p>
-              <p className="mt-3 text-sm text-muted">{p.note}</p>
+              <div className="p-5">
+                <p className="font-medium">{p.name}</p>
+                <p className="mt-4 font-mono text-3xl tabular-nums">{p.items}</p>
+                <p className={labelClass}>service items</p>
+                <p className="mt-3 text-sm text-muted">{p.note}</p>
+              </div>
             </div>
           ))}
         </div>

@@ -8,7 +8,11 @@ const BODY =
   'Q 446 160 446 148 L 446 130 Q 446 118 434 114 L 364 98 L 316 62 Q 306 52 290 52 L 204 52 ' +
   'Q 186 52 176 61 L 126 96 L 66 104 Q 50 108 48 122 L 47 148 Q 47 160 56 160 Z'
 
-const BODY_COLOR = '#1b1b19'
+//day is a black car on a light page, night is a light car on a dark road
+const colours = {
+  day: { body: '#1b1b19', glass: '#e4e4de', shine: '#fafaf8', seam: '#fafaf8', mirror: '#2a2a27', light: '#fafaf8' },
+  night: { body: '#e6e4dc', glass: '#23272b', shine: '#ffffff', seam: '#000000', mirror: '#cfcdc5', light: '#ffffff' },
+}
 
 function Wheel({ cx, spin }) {
   //five spokes from the hub out to the rim
@@ -41,36 +45,37 @@ function Wheel({ cx, spin }) {
   )
 }
 
-function CarSide({ powertrain = 'petrol', spin = false, bounce = false }) {
+function CarSide({ powertrain = 'petrol', spin = false, bounce = false, night = false }) {
+  const c = night ? colours.night : colours.day
   const hasEngine = powertrain !== 'electric'
   const hasPlug = powertrain === 'phev' || powertrain === 'electric'
 
   return (
     <g>
       <g className={bounce ? 'car-bob' : ''}>
-        <path d={BODY} fill={BODY_COLOR} />
+        <path d={BODY} fill={c.body} />
         {/*dark wheel wells inside the arches, cut flat at the bottom of the body*/}
         <path d="M 94.9 160 A 36.5 36.5 0 1 1 165.1 160 Z" fill="#0a0a09" />
         <path d="M 314.9 160 A 36.5 36.5 0 1 1 385.1 160 Z" fill="#0a0a09" />
 
         {/*glass, the gap between the two windows is the b pillar*/}
-        <path d="M 248 59 L 290 59 Q 300 59 307 66 L 341 95 L 248 95 Z" className="fill-line" />
-        <path d="M 236 59 L 204 59 Q 192 59 184 66 L 142 95 L 236 95 Z" className="fill-line" />
+        <path d="M 248 59 L 290 59 Q 300 59 307 66 L 341 95 L 248 95 Z" fill={c.glass} />
+        <path d="M 236 59 L 204 59 Q 192 59 184 66 L 142 95 L 236 95 Z" fill={c.glass} />
         {/*light reflection on the glass*/}
-        <path d="M 262 59 L 276 59 L 262 95 L 248 95 Z" className="fill-paper" opacity="0.55" />
-        <path d="M 214 59 L 224 59 L 206 95 L 196 95 Z" className="fill-paper" opacity="0.45" />
+        <path d="M 262 59 L 276 59 L 262 95 L 248 95 Z" fill={c.shine} opacity={night ? 0.16 : 0.55} />
+        <path d="M 214 59 L 224 59 L 206 95 L 196 95 Z" fill={c.shine} opacity={night ? 0.12 : 0.45} />
 
         {/*shoulder line and door seams*/}
-        <path d="M 58 120 L 436 124" className="stroke-paper" strokeWidth="1.2" opacity="0.14" fill="none" />
-        <path d="M 242 96 L 242 156 M 336 100 L 322 152 M 154 98 L 168 150" className="stroke-paper" strokeWidth="1.5" opacity="0.18" fill="none" />
-        <rect x="256" y="109" width="16" height="3" className="fill-paper" opacity="0.4" />
-        <rect x="174" y="109" width="16" height="3" className="fill-paper" opacity="0.4" />
+        <path d="M 58 120 L 436 124" stroke={c.seam} strokeWidth="1.2" opacity="0.14" fill="none" />
+        <path d="M 242 96 L 242 156 M 336 100 L 322 152 M 154 98 L 168 150" stroke={c.seam} strokeWidth="1.5" opacity="0.18" fill="none" />
+        <rect x="256" y="109" width="16" height="3" fill={c.seam} opacity="0.4" />
+        <rect x="174" y="109" width="16" height="3" fill={c.seam} opacity="0.4" />
 
         {/*side mirror*/}
-        <path d="M 330 93 L 343 91 Q 348 91 348 95 L 348 101 L 333 101 Z" fill="#2a2a27" />
+        <path d="M 330 93 L 343 91 Q 348 91 348 95 L 348 101 L 333 101 Z" fill={c.mirror} />
 
         {/*lights*/}
-        <path d="M 432 116 L 445 122 L 445 129 L 428 126 Z" className="fill-paper" />
+        <path d="M 432 116 L 445 122 L 445 129 L 428 126 Z" fill={c.light} />
         <rect x="419" y="125" width="9" height="3" className="fill-accent" />
         <path d="M 48 114 L 63 110 L 63 120 L 48 124 Z" className="fill-bad" />
 
