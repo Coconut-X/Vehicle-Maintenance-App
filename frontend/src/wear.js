@@ -17,7 +17,8 @@ const systemList = [
   { key: 'battery', label: 'Battery', categories: ['Electrical'], x: 85.9, y: 29.6, left: true },
   { key: 'brakes', label: 'Brakes', categories: ['Brakes'], x: 76.6, y: 73.5 },
   { key: 'tyres', label: 'Tyres', categories: ['Tyres'], x: 18.7, y: 20.2 },
-  { key: 'filters', label: 'Filters', categories: ['Filters'], x: 13, y: 44.4 },
+  //oil and air filters sit in the engine bay so the dot goes there, not at the fuel tank
+  { key: 'filters', label: 'Filters', categories: ['Filters'], x: 71, y: 37, left: true },
 ]
 
 //lower is worse, a system shows its worst item
