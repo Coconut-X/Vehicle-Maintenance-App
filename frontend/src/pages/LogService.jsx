@@ -8,6 +8,8 @@ import Field from '../components/Field'
 import Loading from '../components/Loading'
 import Select from '../components/Select'
 import TextArea from '../components/TextArea'
+import Plate from '../components/Plate'
+import Telltale from '../components/Telltale'
 import { btnOutline, btnPrimary, labelClass } from '../components/ui'
 
 //today as yyyy-mm-dd for the date input, using local time not utc
@@ -16,6 +18,20 @@ const today = () => {
   const month = String(d.getMonth() + 1).padStart(2, '0')
   const day = String(d.getDate()).padStart(2, '0')
   return d.getFullYear() + '-' + month + '-' + day
+}
+
+//one numbered block of the job card
+function Section({ no, title, children }) {
+  return (
+    <fieldset className="border-t border-line px-5 py-5 first-of-type:border-t-0">
+      <legend className="sr-only">{title}</legend>
+      <p className="mb-4 flex items-center gap-3 font-mono text-[11px] uppercase tracking-widest text-muted" aria-hidden="true">
+        <span className="bg-accent px-1.5 py-0.5 text-white">{no}</span>
+        {title}
+      </p>
+      {children}
+    </fieldset>
+  )
 }
 
 //log a completed job for one vehicle, /vehicles/:id/log?item=<catalogue item id>
@@ -125,13 +141,14 @@ function LogService() {
     data.items.map((i) => ({ value: i._id, label: i.category + ' - ' + i.name }))
   )
 
+  const picked = data.items.find((i) => i._id === form.item)
+
   return (
-    <div className="mx-auto max-w-2xl px-6 py-12">
+    <div className="mx-auto max-w-3xl px-6 py-12">
       <Link to={'/vehicles/' + id} className="font-mono text-xs uppercase tracking-widest text-muted hover:text-ink">
         &larr; {vehicleName(data.vehicle)}
       </Link>
-      <p className={labelClass + ' mt-6'}>log service</p>
-      <h1 className="mt-3 text-3xl font-semibold tracking-tight">What did you get done?</h1>
+      <h1 className="mt-6 text-3xl font-semibold tracking-tight">What did you get done?</h1>
       <p className="mt-2 text-sm text-muted">
         Saving this resets the item&apos;s schedule and makes the km estimate for {vehicleName(data.vehicle)} more accurate.
       </p>
@@ -140,82 +157,109 @@ function LogService() {
         <ErrorNote message={formError} />
       </div>
 
-      <form onSubmit={handleSubmit} noValidate className="mt-2 space-y-5">
-        <Select label="Maintenance item" id="item" name="item" value={form.item} onChange={handleChange} options={itemOptions} />
-        {errors.item && <p className="-mt-3 text-xs text-bad">{errors.item}</p>}
-
-        <div className="grid gap-5 sm:grid-cols-2">
-          <Field
-            label="Date"
-            id="serviceDate"
-            name="serviceDate"
-            type="date"
-            max={today()}
-            value={form.serviceDate}
-            onChange={handleChange}
-            error={errors.serviceDate}
-          />
-          <Field
-            label="Odometer (km)"
-            id="odometerKm"
-            name="odometerKm"
-            type="number"
-            inputMode="numeric"
-            value={form.odometerKm}
-            onChange={handleChange}
-            error={errors.odometerKm}
-            hint={
-              data.projection.projectedKm === null
-                ? 'The reading at the time of the service.'
-                : 'Our estimate. Correct it if your odometer shows something else, this keeps predictions accurate.'
-            }
-          />
-          <Field
-            label="Cost (optional)"
-            id="cost"
-            name="cost"
-            type="number"
-            inputMode="decimal"
-            step="0.01"
-            value={form.cost}
-            onChange={handleChange}
-            error={errors.cost}
-          />
-          <Field
-            label="Workshop (optional)"
-            id="workshop"
-            name="workshop"
-            placeholder="Ali Motors"
-            value={form.workshop}
-            onChange={handleChange}
-            error={errors.workshop}
-          />
+      {/*the form is drawn like the job card a workshop fills in for every car*/}
+      <form onSubmit={handleSubmit} noValidate className="mt-2 border-2 border-ink bg-card">
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-ink px-5 py-3 text-white">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-widest text-accent">workshop job card</p>
+            <p className="font-display text-lg font-bold uppercase [font-stretch:125%]">{vehicleName(data.vehicle)}</p>
+          </div>
+          <Plate number={data.vehicle.registrationNo} />
         </div>
 
-        <TextArea label="Notes (optional)" id="notes" name="notes" value={form.notes} onChange={handleChange} error={errors.notes} />
+        <Section no="01" title="work done">
+          <div className="flex items-end gap-3">
+            {picked && <Telltale name={picked.name} category={picked.category} />}
+            <div className="flex-1">
+              <Select label="Maintenance item" id="item" name="item" value={form.item} onChange={handleChange} options={itemOptions} />
+            </div>
+          </div>
+          {errors.item && <p className="mt-1 text-xs text-bad">{errors.item}</p>}
+        </Section>
 
-        <div>
-          <label htmlFor="receipt" className={labelClass}>
-            Receipt (optional)
-          </label>
-          <input
-            id="receipt"
-            type="file"
-            accept="image/jpeg,image/png,image/webp,application/pdf"
-            onChange={(e) => setReceipt(e.target.files[0] || null)}
-            className="mt-1.5 block w-full text-sm text-muted file:mr-3 file:cursor-pointer file:border file:border-ink file:bg-transparent file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-ink hover:file:bg-ink hover:file:text-white"
-          />
-          <p className="mt-1 text-xs text-muted">JPG, PNG, WebP or PDF, up to 5MB.</p>
-          {errors.receipt && <p className="mt-1 text-xs text-bad">{errors.receipt}</p>}
-        </div>
+        <Section no="02" title="when and at what reading">
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Field
+              label="Date"
+              id="serviceDate"
+              name="serviceDate"
+              type="date"
+              max={today()}
+              value={form.serviceDate}
+              onChange={handleChange}
+              error={errors.serviceDate}
+            />
+            <Field
+              label="Odometer (km)"
+              id="odometerKm"
+              name="odometerKm"
+              type="number"
+              inputMode="numeric"
+              value={form.odometerKm}
+              onChange={handleChange}
+              error={errors.odometerKm}
+              hint={
+                data.projection.projectedKm === null
+                  ? 'The reading at the time of the service.'
+                  : 'Our estimate. Correct it if your odometer shows something else, this keeps predictions accurate.'
+              }
+            />
+          </div>
+        </Section>
 
-        <div className="flex gap-3 pt-2">
-          <button type="submit" disabled={saving} className={btnPrimary}>
-            {saving ? 'Saving...' : 'Save service'}
-          </button>
-          <Link to={'/vehicles/' + id} className={btnOutline}>
-            Cancel
-          </Link>
+        <Section no="03" title="bill">
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Field
+              label="Cost (optional)"
+              id="cost"
+              name="cost"
+              type="number"
+              inputMode="decimal"
+              step="0.01"
+              value={form.cost}
+              onChange={handleChange}
+              error={errors.cost}
+            />
+            <Field
+              label="Workshop (optional)"
+              id="workshop"
+              name="workshop"
+              placeholder="Ali Motors"
+              value={form.workshop}
+              onChange={handleChange}
+              error={errors.workshop}
+            />
+          </div>
+        </Section>
+
+        <Section no="04" title="remarks and receipt">
+          <TextArea label="Notes (optional)" id="notes" name="notes" value={form.notes} onChange={handleChange} error={errors.notes} />
+          <div className="mt-5">
+            <label htmlFor="receipt" className={labelClass}>
+              Receipt (optional)
+            </label>
+            <input
+              id="receipt"
+              type="file"
+              accept="image/jpeg,image/png,image/webp,application/pdf"
+              onChange={(e) => setReceipt(e.target.files[0] || null)}
+              className="mt-1.5 block w-full text-sm text-muted file:mr-3 file:cursor-pointer file:border file:border-ink file:bg-transparent file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-ink hover:file:bg-ink hover:file:text-white"
+            />
+            <p className="mt-1 text-xs text-muted">JPG, PNG, WebP or PDF, up to 5MB.</p>
+            {errors.receipt && <p className="mt-1 text-xs text-bad">{errors.receipt}</p>}
+          </div>
+        </Section>
+
+        <div className="flex flex-wrap items-center justify-between gap-4 border-t-2 border-dashed border-ink px-5 py-4">
+          <p className="font-mono text-[10px] uppercase tracking-widest text-muted">job closed / signed off by you</p>
+          <div className="flex gap-3">
+            <Link to={'/vehicles/' + id} className={btnOutline}>
+              Cancel
+            </Link>
+            <button type="submit" disabled={saving} className={btnPrimary}>
+              {saving ? 'Saving...' : 'Close job'}
+            </button>
+          </div>
         </div>
       </form>
     </div>
