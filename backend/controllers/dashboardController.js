@@ -28,9 +28,20 @@ const getDashboard = async (req, res) => {
       model: v.model,
       nickname: v.nickname,
       registrationNo: v.registrationNo,
+      year: v.year,
+      powertrain: v.powertrain,
       photoUrl: v.photoUrl,
       summary: result.summary,
       counts: result.counts,
+      //just what the frontend needs to light up the car systems on each card
+      parts: result.items.map((i) => ({
+        item: { category: i.entry.item.category },
+        enabled: true,
+        status: i.status,
+        due: i.due,
+        intervalKm: i.entry.intervalKm,
+        intervalMonths: i.entry.intervalMonths,
+      })),
     });
 
     result.items.forEach((i) => {

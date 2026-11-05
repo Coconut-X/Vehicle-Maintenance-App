@@ -8,6 +8,9 @@ import Loading from '../components/Loading'
 import StatusBadge from '../components/StatusBadge'
 import Telltale from '../components/Telltale'
 import Plate from '../components/Plate'
+import CarArt from '../components/CarArt'
+import PartGauge from '../components/PartGauge'
+import { buildSystems } from '../wear'
 import { btnPrimary, labelClass } from '../components/ui'
 
 //one readout in the dark instrument strip, the number lights up only when it matters
@@ -17,6 +20,55 @@ function Total({ label, value, tone }) {
       <p className="font-mono text-[11px] uppercase tracking-widest text-lamp-off">{label}</p>
       <p className={'mt-1 font-mono text-3xl tabular-nums ' + tone}>{String(value).padStart(2, '0')}</p>
     </div>
+  )
+}
+
+const lampText = {
+  overdue: 'text-lamp-red',
+  due_soon: 'text-lamp-amber',
+  up_to_date: 'text-lamp-green',
+}
+
+//one car in the garage, the photo on top and its systems as moving parts underneath
+function VehicleCard({ vehicle }) {
+  const name = vehicleName(vehicle)
+  const systems = buildSystems(vehicle.parts)
+
+  return (
+    <li className="border border-line bg-card">
+      <Link to={'/vehicles/' + vehicle._id} className="group block">
+        <div className="relative aspect-[16/8] border-b border-line">
+          {vehicle.photoUrl ? (
+            <img src={vehicle.photoUrl} alt={name} className="h-full w-full object-cover" />
+          ) : (
+            <CarArt powertrain={vehicle.powertrain} className="transition-transform duration-500 group-hover:scale-[1.03]" />
+          )}
+          <div className="absolute bottom-2 left-2 bg-card">
+            <StatusBadge status={vehicle.summary} />
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between gap-3 px-4 py-3">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium group-hover:text-accent">{name}</p>
+            <p className="font-mono text-xs text-muted">
+              {vehicle.counts.overdue} overdue / {vehicle.counts.due_soon} due soon
+            </p>
+          </div>
+          <Plate number={vehicle.registrationNo} size="sm" />
+        </div>
+
+        {/*instrument strip with a moving gauge for every system of this car*/}
+        <div className="flex bg-ink">
+          {systems.map((s) => (
+            <div key={s.key} className="flex flex-1 flex-col items-center gap-1 border-r border-white/10 py-2.5 last:border-r-0" title={s.label}>
+              <PartGauge kind={s.key} used={s.used} status={s.status} className="h-8 w-8" />
+              <span className={'font-mono text-[9px] uppercase tracking-widest ' + (lampText[s.status] || 'text-white/50')}>{s.label}</span>
+            </div>
+          ))}
+        </div>
+      </Link>
+    </li>
   )
 }
 
@@ -76,6 +128,13 @@ function Dashboard() {
             <Total label="up to date" value={data.totals.up_to_date} tone="text-lamp-green" />
           </div>
 
+          <h2 className="mt-12 font-semibold tracking-tight">Your vehicles</h2>
+          <ul className="mt-3 grid gap-4 md:grid-cols-2">
+            {data.vehicles.map((v) => (
+              <VehicleCard key={v._id} vehicle={v} />
+            ))}
+          </ul>
+
           <h2 className="mt-12 font-semibold tracking-tight">Needs attention</h2>
           {data.urgent.length === 0 ? (
             <p className="mt-3 border border-line bg-card px-4 py-6 text-sm text-muted">
@@ -121,30 +180,6 @@ function Dashboard() {
             </p>
           )}
 
-          <h2 className="mt-12 font-semibold tracking-tight">Your vehicles</h2>
-          <ul className="mt-3 border border-line bg-card">
-            {data.vehicles.map((v) => (
-              <li key={v._id} className="border-b border-line last:border-b-0">
-                <Link
-                  to={'/vehicles/' + v._id}
-                  className="flex items-center justify-between gap-4 px-4 py-3 transition-colors hover:bg-paper"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{vehicleName(v)}</p>
-                    <div className="mt-1">
-                      <Plate number={v.registrationNo} size="sm" />
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <p className="hidden font-mono text-xs text-muted sm:block">
-                      {v.counts.overdue} overdue / {v.counts.due_soon} due soon
-                    </p>
-                    <StatusBadge status={v.summary} />
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
         </>
       )}
     </div>
