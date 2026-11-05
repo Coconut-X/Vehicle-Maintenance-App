@@ -1,19 +1,20 @@
-import CarSide from './CarSide'
+//picture of the car, shown when a vehicle has no photo of its own
+//one studio photo per powertrain, made with figma and saved in public/cars
+//the photos have a pure white background, multiply blending makes that white take the colour of the card
+const photos = {
+  petrol: { src: '/cars/petrol.webp', alt: 'Petrol sedan' },
+  hybrid: { src: '/cars/hybrid.webp', alt: 'Hybrid liftback' },
+  phev: { src: '/cars/phev.webp', alt: 'Plug-in hybrid SUV' },
+  electric: { src: '/cars/electric.webp', alt: 'Electric sedan' },
+}
 
-//still picture of the car, shown when a vehicle has no photo
-//the tag in the corner shows the powertrain, the drawing also changes a little for it
 function CarArt({ powertrain = 'petrol', className = '' }) {
   const code = { petrol: 'ICE', hybrid: 'HEV', phev: 'PHEV', electric: 'EV' }[powertrain] || 'ICE'
+  const photo = photos[powertrain] || photos.petrol
 
   return (
-    <div className={'relative flex h-full w-full items-end justify-center overflow-hidden bg-paper ' + className}>
-      <svg viewBox="0 30 480 170" className="w-[88%] max-w-sm" aria-hidden="true">
-        <rect x="0" y="180" width="480" height="20" fill="#e9e9e3" />
-        <ellipse cx="240" cy="181" rx="190" ry="3.5" fill="#000" opacity="0.18" />
-        <g transform="translate(-6 0)">
-          <CarSide powertrain={powertrain} />
-        </g>
-      </svg>
+    <div className={'relative flex h-full w-full items-center justify-center overflow-hidden bg-paper ' + className}>
+      <img src={photo.src} alt={photo.alt} loading="lazy" className="w-[92%] max-w-md object-contain mix-blend-multiply" />
       <span className="absolute right-2 top-2 border border-ink bg-card px-1.5 py-0.5 font-mono text-[10px] tracking-wide">{code}</span>
     </div>
   )

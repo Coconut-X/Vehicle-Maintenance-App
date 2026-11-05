@@ -1,6 +1,7 @@
 import { Link, NavLink } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { logout } from '../store/authSlice'
+import Logo from './Logo'
 import { btnOutline, btnPrimary } from './ui'
 
 //links for logged in users, shown in the bar on desktop and in a second row on mobile
@@ -40,9 +41,7 @@ function Navbar() {
       <nav className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 px-6">
         <div className="flex h-14 items-center gap-6">
           <Link to="/" className="flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center bg-ink font-mono text-xs font-medium text-accent">
-              cv
-            </span>
+            <Logo size={26} />
             <span className="font-semibold tracking-tight">carvault</span>
           </Link>
           {token && (

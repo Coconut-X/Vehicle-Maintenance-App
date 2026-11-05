@@ -138,8 +138,6 @@ function CarScene() {
 
           {/*headlight beam on the road ahead*/}
           <path d="M 404 132 L 480 150 L 480 186 L 404 140 Z" fill="#fff6d8" opacity="0.10" />
-          {/*shadow under the car*/}
-          <ellipse cx="240" cy="181" rx="160" ry="3.5" fill="#000" opacity="0.6" />
           {/*scaled down so the background shows, 180 x 0.82 + 32.4 keeps the tyres on the road*/}
           <g transform="translate(38 32.4) scale(0.82)">
             <CarSide powertrain="petrol" spin bounce night />
