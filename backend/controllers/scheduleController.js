@@ -1,4 +1,6 @@
 const ScheduleEntry = require("../models/ScheduleEntry");
+const Vehicle = require("../models/Vehicle");
+const CatalogueItem = require("../models/CatalogueItem");
 
 //null or empty string means the user wants to clear that interval
 const isCleared = (v) => v === null || v === "";
@@ -39,10 +41,19 @@ const updateEntry = async (req, res) => {
   }
 
   if (body.enabled !== undefined) {
-    if (typeof body.enabled === "boolean") {
-      entry.enabled = body.enabled;
-    } else {
+    if (typeof body.enabled !== "boolean") {
       errors.enabled = "enabled must be true or false";
+    } else if (body.enabled) {
+      //an item that doesnt fit the car stays off, otherwise an ev would get oil change reminders
+      const vehicle = await Vehicle.findById(entry.vehicle);
+      const item = await CatalogueItem.findById(entry.item);
+      if (vehicle && item && !item.appliesTo(vehicle.powertrain)) {
+        errors.enabled = "this item is not used on a " + vehicle.powertrain + " car";
+      } else {
+        entry.enabled = true;
+      }
+    } else {
+      entry.enabled = false;
     }
   }
 
