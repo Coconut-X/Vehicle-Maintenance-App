@@ -1,4 +1,5 @@
 const Vehicle = require("../models/Vehicle");
+const User = require("../models/User");
 const CatalogueItem = require("../models/CatalogueItem");
 const ScheduleEntry = require("../models/ScheduleEntry");
 const ServiceRecord = require("../models/ServiceRecord");
@@ -104,6 +105,12 @@ const createVehicle = async (req, res) => {
   const data = pickFields(body);
   data.owner = req.userId;
   data.odometerDate = new Date();
+
+  //no km per month given, use the default from the users profile if there is one
+  if (data.avgMonthlyKm === undefined || data.avgMonthlyKm === "") {
+    const user = await User.findById(req.userId);
+    if (user && user.defaultMonthlyKm) data.avgMonthlyKm = user.defaultMonthlyKm;
+  }
 
   const vehicle = await Vehicle.create(data);
 
@@ -255,7 +262,6 @@ const deleteVehicle = async (req, res) => {
   }
 
   //remove everything that belongs to this vehicle so nothing is left orphaned
-  //reminder logs get added here when that model exists
   await ScheduleEntry.deleteMany({ vehicle: vehicle._id, owner: req.userId });
 
   const records = await ServiceRecord.find({ vehicle: vehicle._id, owner: req.userId });

@@ -11,6 +11,11 @@ const errorHandler = (err, req, res, next) => {
     return res.status(400).json({ message: "invalid json in request body" });
   }
 
+  //body bigger than the express.json limit
+  if (err.type === "entity.too.large") {
+    return res.status(413).json({ message: "request is too large" });
+  }
+
   //mongoose schema validation
   if (err.name === "ValidationError") {
     const errors = {};

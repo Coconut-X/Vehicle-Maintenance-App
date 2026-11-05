@@ -147,6 +147,23 @@ const createService = async (req, res) => {
     return res.status(422).json(chronologyError(conflict));
   }
 
+  //also compare with the vehicles own reading, the odometer cant go backwards here either
+  //compared by day so a service on the same day as the reading is always fine
+  const readingDate = vehicle.odometerDate.toISOString().slice(0, 10);
+  const serviceDay = data.serviceDate.toISOString().slice(0, 10);
+  if (serviceDay < readingDate && data.odometerKm > vehicle.odometerKm) {
+    return res.status(422).json({
+      message: "validation failed",
+      errors: { odometerKm: "the vehicle had " + vehicle.odometerKm + " km on " + readingDate + ", an earlier service cant have more" },
+    });
+  }
+  if (serviceDay > readingDate && data.odometerKm < vehicle.odometerKm) {
+    return res.status(422).json({
+      message: "validation failed",
+      errors: { odometerKm: "the vehicle already had " + vehicle.odometerKm + " km on " + readingDate + ", a later service cant have less" },
+    });
+  }
+
   data.owner = req.userId;
   data.vehicle = vehicle._id;
   data.item = item._id;
