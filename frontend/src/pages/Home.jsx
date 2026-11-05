@@ -1,113 +1,267 @@
+import { useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useSelector } from 'react-redux'
-import StatusBadge from '../components/StatusBadge'
+import CarScene from '../components/CarScene'
 import { btnOutline, btnPrimary, labelClass } from '../components/ui'
 
-//sample rows for the preview box, not real data
-const sample = [
-  { item: 'Engine oil change', basis: 'km', due: 'in 9 days', status: 'due_soon' },
-  { item: 'Brake fluid', basis: 'time', due: 'in 214 days', status: 'up_to_date' },
-  { item: 'Tyre rotation', basis: 'km', due: 'in 162 days', status: 'up_to_date' },
-  { item: 'Battery replacement', basis: 'time', due: '47 days ago', status: 'overdue' },
+const facts = [
+  { value: '19', label: 'service items' },
+  { value: '2', label: 'clocks per item' },
+  { value: '30/7/1', label: 'days notice' },
+  { value: '4', label: 'powertrains' },
 ]
 
+//real sequence, so the numbers mean something
 const steps = [
   {
     no: '01',
-    title: 'Add your vehicles',
-    text: 'Enter the make, model and current odometer. Seventeen standard maintenance items are set up for you.',
+    title: 'Park it in your garage',
+    text: 'Make, model, odometer and how far you drive a month. Pick petrol, hybrid, plug-in or electric and the right service items are set up for that car.',
   },
   {
     no: '02',
-    title: 'Log what you get done',
-    text: 'Save date, cost, workshop and the receipt. Each entry resets that item and sharpens the estimate.',
+    title: 'Log every job',
+    text: 'Date, km, workshop, cost and the receipt photo. Logging a job resets that item and teaches CarVault how much you really drive.',
   },
   {
     no: '03',
-    title: 'Get told in advance',
-    text: 'One email 30, 7 and 1 day before anything falls due. You never have to remember to check.',
+    title: 'Get told before it is due',
+    text: 'A daily check emails you 30, 7 and 1 day before anything falls due, and once more if it goes overdue. One email, never the same reminder twice.',
   },
 ]
 
+const powertrainCards = [
+  { name: 'Petrol', code: 'ICE', items: 18, note: 'Oil, filters, spark plugs, timing belt, brakes, tyres and the rest.' },
+  { name: 'Hybrid', code: 'HEV', items: 19, note: 'Everything a petrol car needs, plus a yearly high voltage battery check.' },
+  { name: 'Plug-in hybrid', code: 'PHEV', items: 19, note: 'Same as a hybrid. The engine still needs oil even if you mostly charge.' },
+  { name: 'Electric', code: 'EV', items: 13, note: 'No oil, no spark plugs, no timing belt. Brakes, tyres, coolant and the battery stay.' },
+]
+
+const reminderStops = [
+  { when: '30 days', text: 'Book a slot', tone: 'border-warn text-warn' },
+  { when: '7 days', text: 'Get it done this week', tone: 'border-warn text-warn' },
+  { when: '1 day', text: 'Due tomorrow', tone: 'border-warn text-warn' },
+  { when: 'Overdue', text: 'Last call', tone: 'border-bad text-bad' },
+]
+
+//small dial like the ones on a dashboard, the needle sweeps once when it scrolls into view
+function Gauge({ label, value, unit, sweep }) {
+  return (
+    <div className="bg-card p-5">
+      <svg viewBox="0 0 120 72" className="mx-auto block w-40 text-ink" aria-hidden="true">
+        <path d="M10 64 A50 50 0 0 1 110 64" fill="none" className="stroke-line" strokeWidth="8" />
+        <path d="M10 64 A50 50 0 0 1 110 64" fill="none" className="gauge-arc stroke-accent" strokeWidth="8" pathLength="100" strokeDasharray={sweep + ' 100'} />
+        {[0, 1, 2, 3, 4].map((i) => (
+          <line key={i} x1="60" y1="18" x2="60" y2="24" className="stroke-muted" strokeWidth="1.5" transform={'rotate(' + (i * 45 - 90) + ' 60 64)'} />
+        ))}
+        <g className="gauge-needle" style={{ '--needle': sweep * 1.8 - 90 + 'deg' }}>
+          <line x1="60" y1="64" x2="60" y2="22" className="stroke-ink" strokeWidth="2.5" />
+        </g>
+        <circle cx="60" cy="64" r="5" className="fill-ink" />
+      </svg>
+      <p className={labelClass + ' mt-3 text-center'}>{label}</p>
+      <p className="text-center font-mono text-xl tabular-nums">
+        {value} <span className="text-sm text-muted">{unit}</span>
+      </p>
+    </div>
+  )
+}
+
+//fades sections in when they scroll into view
+//only things below the first screen get hidden, so the page is never blank without js
+const useReveal = (ref) => {
+  useEffect(() => {
+    const root = ref.current
+    if (!root || !('IntersectionObserver' in window)) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+
+    const items = Array.from(root.querySelectorAll('[data-reveal]'))
+    const below = items.filter((el) => el.getBoundingClientRect().top > window.innerHeight)
+    below.forEach((el) => el.classList.add('reveal-wait'))
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.remove('reveal-wait')
+            entry.target.classList.add('reveal-in')
+            observer.unobserve(entry.target)
+          }
+        })
+      },
+      { threshold: 0.15 }
+    )
+    below.forEach((el) => observer.observe(el))
+
+    return () => observer.disconnect()
+  }, [ref])
+}
+
 function Home() {
   const token = useSelector((state) => state.auth.token)
+  const pageRef = useRef(null)
+  useReveal(pageRef)
+
+  const actions = token ? (
+    <Link to="/dashboard" className={btnPrimary}>
+      Open dashboard
+    </Link>
+  ) : (
+    <>
+      <Link to="/register" className={btnPrimary}>
+        Add your first car
+      </Link>
+      <Link to="/login" className={btnOutline}>
+        Log in
+      </Link>
+    </>
+  )
 
   return (
-    <div>
-      <section className="mx-auto grid max-w-6xl gap-12 px-6 pb-20 pt-16 md:grid-cols-2 md:pt-24">
-        <div className="flex flex-col justify-center">
-          <p className={labelClass + ' !text-accent'}>vehicle maintenance, tracked</p>
-          <h1 className="mt-4 text-4xl font-semibold leading-[1.1] tracking-tight md:text-5xl">
+    <div ref={pageRef} className="overflow-x-hidden">
+      {/*hero*/}
+      <section className="mx-auto grid max-w-6xl items-center gap-10 px-6 pb-16 pt-12 md:grid-cols-[1fr_1.1fr] md:pb-24 md:pt-20">
+        <div>
+          <p className={labelClass + ' !text-accent'}>car maintenance, tracked</p>
+          <h1 className="mt-4 text-4xl font-semibold leading-[1.05] tracking-tight md:text-6xl">
             Your car runs on two clocks. We watch both.
           </h1>
           <p className="mt-5 max-w-md text-muted">
-            Engine oil is due at 5,000 km or six months, whichever comes first. CarVault tracks every job by
-            distance and by date, predicts when it falls due, and emails you before it does.
+            Engine oil is due at 5,000 km or six months, whichever comes first. CarVault tracks every service item by
+            kilometre and by date, works out today&apos;s odometer for you, and emails you before anything falls due.
           </p>
-          <div className="mt-8 flex gap-3">
-            {token ? (
-              <Link to="/dashboard" className={btnPrimary}>
-                Open dashboard
-              </Link>
-            ) : (
-              <>
-                <Link to="/register" className={btnPrimary}>
-                  Start for free
-                </Link>
-                <Link to="/login" className={btnOutline}>
-                  Log in
-                </Link>
-              </>
-            )}
-          </div>
+          <div className="mt-8 flex flex-wrap gap-3">{actions}</div>
         </div>
+        <CarScene />
+      </section>
 
-        <div className="border border-line bg-card">
-          <div className="flex items-center justify-between border-b border-line px-4 py-3">
-            <span className="text-sm font-medium">Corolla</span>
-            <span className="font-mono text-xs text-muted">LEA-1234 / 55,627 km</span>
-          </div>
-          <ul>
-            {sample.map((row) => (
-              <li
-                key={row.item}
-                className="flex items-center justify-between gap-3 border-b border-line px-4 py-3 last:border-b-0"
-              >
-                <div>
-                  <p className="text-sm">{row.item}</p>
-                  <p className="font-mono text-xs text-muted">
-                    {row.due} / by {row.basis}
-                  </p>
-                </div>
-                <StatusBadge status={row.status} />
-              </li>
-            ))}
-          </ul>
+      {/*facts strip*/}
+      <section className="border-y border-line bg-ink text-white">
+        <div className="mx-auto grid max-w-6xl grid-cols-2 md:grid-cols-4">
+          {facts.map((f, i) => (
+            <div key={f.label} data-reveal className={'px-6 py-6 ' + (i % 2 === 1 ? 'border-l border-white/15 ' : '') + (i === 2 ? 'border-t border-white/15 md:border-l md:border-t-0' : i === 3 ? 'border-t border-white/15 md:border-t-0' : '')}>
+              <p className="whitespace-nowrap font-mono text-2xl tabular-nums text-accent md:text-3xl">{f.value}</p>
+              <p className="mt-1 font-mono text-[11px] uppercase tracking-widest text-white/60">{f.label}</p>
+            </div>
+          ))}
         </div>
       </section>
 
+      {/*two clocks*/}
+      <section className="mx-auto grid max-w-6xl gap-10 px-6 py-20 md:grid-cols-2 md:items-center">
+        <div data-reveal>
+          <p className={labelClass}>the two clocks</p>
+          <h2 className="mt-3 max-w-md text-2xl font-semibold tracking-tight md:text-3xl">
+            Kilometres or months. Whichever runs out first wins.
+          </h2>
+          <p className="mt-4 max-w-md text-muted">
+            Brake pads wear with driving. Brake fluid and batteries age with time. Oil does both. For every item CarVault
+            keeps a km clock and a calendar clock, and the one that reaches its limit first sets the due date.
+          </p>
+          <p className="mt-4 max-w-md text-muted">
+            Nobody types in their odometer every day, so we estimate it from your last reading and how much you drive.
+            Every service you log corrects the estimate.
+          </p>
+        </div>
+        <div data-reveal className="grid grid-cols-1 gap-px border border-line bg-line sm:grid-cols-2">
+          <Gauge label="since last oil change" value="4,620" unit="/ 5,000 km" sweep={92} />
+          <Gauge label="since last oil change" value="3.5" unit="/ 6 months" sweep={58} />
+          <div className="bg-card px-5 py-4 sm:col-span-2">
+            <p className="font-mono text-xs text-muted">km clock wins</p>
+            <p className="text-sm">
+              Oil change due in about <span className="font-mono">380 km</span>, roughly{' '}
+              <span className="font-mono">10 days</span> at your pace.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/*how it works*/}
       <section className="border-y border-line bg-card">
-        <div className="mx-auto grid max-w-6xl gap-px bg-line px-0 md:grid-cols-3">
+        <div className="mx-auto max-w-6xl px-6 pt-16">
+          <p className={labelClass} data-reveal>
+            how it works
+          </p>
+        </div>
+        <div className="mx-auto grid max-w-6xl gap-px px-6 pb-16 pt-6 md:grid-cols-3">
           {steps.map((s) => (
-            <div key={s.no} className="bg-card p-6 md:p-8">
+            <div key={s.no} data-reveal className="border-t-2 border-ink pt-5 md:pr-8">
               <p className="font-mono text-xs text-accent">{s.no}</p>
-              <h2 className="mt-3 font-semibold tracking-tight">{s.title}</h2>
+              <h3 className="mt-3 font-semibold tracking-tight">{s.title}</h3>
               <p className="mt-2 text-sm text-muted">{s.text}</p>
             </div>
           ))}
         </div>
       </section>
 
+      {/*powertrains*/}
       <section className="mx-auto max-w-6xl px-6 py-20">
-        <p className={labelClass}>why not a spreadsheet</p>
-        <h2 className="mt-3 max-w-xl text-2xl font-semibold tracking-tight md:text-3xl">
-          Nobody types their odometer every day. So we estimate it.
-        </h2>
-        <p className="mt-4 max-w-xl text-muted">
-          CarVault projects your current reading from your last one and your average monthly driving, so a
-          kilometre-based job becomes a calendar date you can be reminded about. Every real reading you log
-          corrects the estimate.
-        </p>
+        <div data-reveal>
+          <p className={labelClass}>petrol to electric</p>
+          <h2 className="mt-3 max-w-xl text-2xl font-semibold tracking-tight md:text-3xl">
+            The schedule fits the car you actually drive.
+          </h2>
+          <p className="mt-4 max-w-xl text-muted">
+            An electric car has no oil to change. A hybrid still does, plus a battery to look after. Pick the powertrain
+            when you add the car and only the items it needs show up. Every interval can still be changed per car.
+          </p>
+        </div>
+        <div className="mt-10 grid grid-cols-1 gap-px border border-line bg-line sm:grid-cols-2 lg:grid-cols-4">
+          {powertrainCards.map((p) => (
+            <div key={p.code} data-reveal className="bg-card p-5">
+              <div className="flex items-baseline justify-between gap-3">
+                <p className="font-medium">{p.name}</p>
+                <span className="border border-ink px-1.5 py-0.5 font-mono text-[11px]">{p.code}</span>
+              </div>
+              <p className="mt-4 font-mono text-3xl tabular-nums">{p.items}</p>
+              <p className={labelClass}>service items</p>
+              <p className="mt-3 text-sm text-muted">{p.note}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/*reminders road*/}
+      <section className="border-y border-line bg-card">
+        <div className="mx-auto max-w-6xl px-6 py-20">
+          <div data-reveal>
+            <p className={labelClass}>reminders</p>
+            <h2 className="mt-3 max-w-xl text-2xl font-semibold tracking-tight md:text-3xl">Four stops before a missed service.</h2>
+          </div>
+          <div data-reveal className="relative mt-10">
+            {/*the road line behind the stops*/}
+            <div className="absolute left-0 right-0 top-[11px] hidden h-[3px] bg-ink md:block" />
+            <div className="absolute left-0 right-0 top-[12px] hidden border-t border-dashed border-paper md:block" />
+            <ol className="relative grid gap-6 md:grid-cols-4">
+              {reminderStops.map((r) => (
+                <li key={r.when} className="flex gap-4 md:block">
+                  <span className={'relative z-[1] mt-0.5 block h-6 w-6 shrink-0 border-2 bg-card ' + r.tone} />
+                  <div className="md:mt-4">
+                    <p className={'font-mono text-sm uppercase tracking-wide ' + r.tone.split(' ')[1]}>{r.when}</p>
+                    <p className="text-sm text-muted">{r.text}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+          <p data-reveal className="mt-10 max-w-xl text-sm text-muted">
+            All due items for all your cars arrive together in one email. If a send fails it is tried again the next day,
+            and once a reminder has gone out it never repeats.
+          </p>
+        </div>
+      </section>
+
+      {/*closing band*/}
+      <section className="mx-auto max-w-6xl px-6 py-20">
+        <div data-reveal className="flex flex-col items-start justify-between gap-6 border border-ink p-8 md:flex-row md:items-center">
+          <div>
+            <h2 className="text-2xl font-semibold tracking-tight">Keep the receipts. Lose the guesswork.</h2>
+            <p className="mt-2 max-w-lg text-sm text-muted">
+              Your full service history, with receipt photos, ready when you sell the car.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-3">{actions}</div>
+        </div>
       </section>
     </div>
   )

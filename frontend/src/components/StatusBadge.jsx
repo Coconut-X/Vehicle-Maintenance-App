@@ -10,7 +10,7 @@ const styles = {
 function StatusBadge({ status }) {
   const s = styles[status] || styles.unknown
   return (
-    <span className={'inline-block border px-1.5 py-0.5 font-mono text-[11px] uppercase tracking-wide ' + s.cls}>
+    <span className={'inline-block shrink-0 whitespace-nowrap border px-1.5 py-0.5 font-mono text-[11px] uppercase tracking-wide ' + s.cls}>
       {s.label}
     </span>
   )

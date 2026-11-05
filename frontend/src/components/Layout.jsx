@@ -10,7 +10,7 @@ function Layout() {
         <Outlet />
       </main>
       <footer className="border-t border-line">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4 font-mono text-[11px] uppercase tracking-widest text-muted">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-1 px-6 py-4 font-mono text-[11px] uppercase tracking-widest text-muted">
           <span>carvault</span>
           <span>web programming / fall 2026</span>
         </div>
