@@ -5,13 +5,15 @@ import { formatDate, formatKm, powertrainLabel, vehicleName } from '../format'
 import ConfirmBox from '../components/ConfirmBox'
 import ScheduleTable from '../components/ScheduleTable'
 import StatusBadge from '../components/StatusBadge'
+import CarArt from '../components/CarArt'
+import Odometer from '../components/Odometer'
 import { btnOutline, btnPrimary, labelClass } from '../components/ui'
 
 function Stat({ label, value, note }) {
   return (
     <div className="bg-card p-4">
       <p className={labelClass}>{label}</p>
-      <p className="mt-1 font-mono text-lg">{value}</p>
+      <div className="mt-1 font-mono text-lg">{value}</div>
       {note && <p className="mt-0.5 text-xs text-muted">{note}</p>}
     </div>
   )
@@ -99,8 +101,12 @@ function VehicleDetail() {
 
       <div className="mt-4 flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
         <div className="flex gap-5">
-          {vehicle.photoUrl && (
+          {vehicle.photoUrl ? (
             <img src={vehicle.photoUrl} alt={name} className="hidden aspect-[16/9] w-40 border border-line object-cover sm:block" />
+          ) : (
+            <div className="hidden aspect-[16/9] w-40 shrink-0 border border-line sm:block">
+              <CarArt powertrain={vehicle.powertrain} />
+            </div>
           )}
           <div>
             <div className="flex items-center gap-3">
@@ -158,7 +164,7 @@ function VehicleDetail() {
       <div className="mt-8 grid gap-px border border-line bg-line sm:grid-cols-3">
         <Stat
           label={projection.projectedKm === null ? 'last reading' : 'estimated odometer'}
-          value={formatKm(projection.projectedKm ?? vehicle.odometerKm)}
+          value={<Odometer km={projection.projectedKm ?? vehicle.odometerKm} />}
           note={projection.projectedKm === null ? '' : 'projected from your last reading'}
         />
         <Stat label="last real reading" value={formatKm(vehicle.odometerKm)} note={'on ' + formatDate(vehicle.odometerDate)} />

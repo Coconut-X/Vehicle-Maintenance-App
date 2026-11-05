@@ -32,6 +32,28 @@ const missingText = (entry, vehicle) => {
   return 'Not enough data yet.'
 }
 
+//how much of the interval is used up, 0 to 1, the bigger of the km part and the time part
+const usedPart = (entry) => {
+  const d = entry.due
+  if (!d || !d.dueDate) return null
+  let used = 0
+  if (entry.intervalKm && d.remainingKm !== null) used = Math.max(used, 1 - d.remainingKm / entry.intervalKm)
+  if (entry.intervalMonths && d.remainingDays !== null) used = Math.max(used, 1 - d.remainingDays / (entry.intervalMonths * 30.44))
+  return Math.min(1, Math.max(0, used))
+}
+
+//thin bar under each item, fills up like a wear gauge as the job comes due
+function WearBar({ entry }) {
+  const used = usedPart(entry)
+  if (used === null) return null
+  const colour = entry.status === 'overdue' ? 'bg-bad' : entry.status === 'due_soon' ? 'bg-warn' : 'bg-good'
+  return (
+    <div className="mt-2 h-1 max-w-48 bg-paper" title={Math.round(used * 100) + '% of the interval used'}>
+      <div className={'h-1 ' + colour} style={{ width: used * 100 + '%' }} />
+    </div>
+  )
+}
+
 function DueInfo({ entry, vehicle }) {
   if (entry.status === 'disabled') {
     return <p className="font-mono text-xs text-muted">not tracked</p>
@@ -47,6 +69,7 @@ function DueInfo({ entry, vehicle }) {
         {daysText(d.remainingDays)} / by {d.basis === 'distance' ? 'km' : 'time'}
         {d.basis === 'distance' && d.remainingKm !== null ? ' / ' + kmLeftText(d.remainingKm) : ''}
       </p>
+      <WearBar entry={entry} />
     </div>
   )
 }
@@ -216,9 +239,9 @@ function ScheduleTable({ entries, vehicle, onChanged }) {
               <div className="md:flex-1">
                 <DueInfo entry={entry} vehicle={vehicle} />
               </div>
-              <div className="flex items-center justify-between gap-4 md:justify-end">
+              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 md:justify-end">
                 <StatusBadge status={entry.status} />
-                <div className="flex gap-3 text-xs">
+                <div className="flex gap-3 whitespace-nowrap text-xs">
                   <Link
                     to={'/vehicles/' + vehicle._id + '/log?item=' + entry.item._id}
                     className="underline underline-offset-4 hover:text-accent"

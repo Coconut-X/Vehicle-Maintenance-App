@@ -6,6 +6,7 @@ import Field from '../components/Field'
 import Select from '../components/Select'
 import StatusBadge from '../components/StatusBadge'
 import Pagination from '../components/Pagination'
+import CarArt from '../components/CarArt'
 import { btnOutline, btnPrimary, labelClass } from '../components/ui'
 
 const statusOptions = [
@@ -32,9 +33,7 @@ function VehicleCard({ v }) {
         {v.photoUrl ? (
           <img src={v.photoUrl} alt={vehicleName(v)} loading="lazy" className="h-full w-full object-cover" />
         ) : (
-          <div className="flex h-full items-center justify-center font-mono text-xs uppercase tracking-widest text-muted">
-            no photo
-          </div>
+          <CarArt powertrain={v.powertrain} />
         )}
       </div>
       <div className="p-4">

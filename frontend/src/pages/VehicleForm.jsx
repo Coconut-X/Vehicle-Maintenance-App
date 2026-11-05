@@ -4,6 +4,7 @@ import api, { readError } from '../api'
 import { validateVehicle } from '../validate'
 import { powertrains, vehicleName } from '../format'
 import Field from '../components/Field'
+import CarArt from '../components/CarArt'
 import { btnOutline, btnPrimary, labelClass } from '../components/ui'
 
 const emptyForm = {
@@ -247,9 +248,7 @@ function VehicleForm() {
               {shownPhoto ? (
                 <img src={shownPhoto} alt="Vehicle preview" className="h-full w-full object-cover" />
               ) : (
-                <div className="flex h-full items-center justify-center font-mono text-xs uppercase tracking-widest text-muted">
-                  no photo
-                </div>
+                <CarArt powertrain={form.powertrain} />
               )}
             </div>
             <div className="min-w-0">
