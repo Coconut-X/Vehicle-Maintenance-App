@@ -60,26 +60,23 @@
 
 /*landing page motion, all of it stops for people who ask for reduced motion*/
 /*the road moves 120 units a second, every speed below comes from that number*/
-/*wheel turn = tyre circumference 2 x pi x 30 = 188.5 units, so 188.5 / 120 = 1.57s per turn*/
+/*the wheel turn time is worked out in CarScene from the tyre size*/
 @layer components {
   .wheel-spin {
     transform-box: fill-box;
     transform-origin: center;
     animation: wheel-spin 1.57s linear infinite;
   }
-  /*dash pattern is 60 units long, 60 / 120 = 0.5s*/
-  .road-dash {
-    animation: road-dash 0.5s linear infinite;
+  /*the background strips are 960 units long, the road moves 120 units a second so 960 / 120 = 8s*/
+  /*the barrier is close to the road so it moves almost as fast, the skyline is far away and barely moves*/
+  .scroll-road {
+    animation: scroll-960 8s linear infinite;
   }
-  /*each layer is 480 wide, slower layers look further away*/
-  .scroll-near {
-    animation: scroll-480 4s linear infinite;
+  .scroll-barrier {
+    animation: scroll-960 9.5s linear infinite;
   }
-  .scroll-mid {
-    animation: scroll-480 9.6s linear infinite;
-  }
-  .scroll-far {
-    animation: scroll-480 26s linear infinite;
+  .scroll-sky {
+    animation: scroll-960 60s linear infinite;
   }
   /*small bounce of the body on its springs, the wheels stay on the road*/
   .car-bob {
@@ -112,14 +109,9 @@
     transform: rotate(360deg);
   }
 }
-@keyframes road-dash {
+@keyframes scroll-960 {
   to {
-    stroke-dashoffset: 60;
-  }
-}
-@keyframes scroll-480 {
-  to {
-    transform: translateX(-480px);
+    transform: translateX(-960px);
   }
 }
 @keyframes car-bob {
@@ -142,10 +134,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .wheel-spin,
-  .road-dash,
-  .scroll-near,
-  .scroll-mid,
-  .scroll-far,
+  .scroll-road,
+  .scroll-barrier,
+  .scroll-sky,
   .car-bob,
   .reveal-in .gauge-needle {
     animation: none;

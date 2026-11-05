@@ -25,55 +25,29 @@ const prefersReducedMotion = () => {
   return typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
-//the scene repeats every 480 units, each layer has two copies so it can scroll forever
-//far blocks of a skyline, as [x, width, height]
-const skyline = [
-  [0, 46, 34], [50, 30, 52], [84, 54, 26], [142, 26, 44], [172, 60, 30], [236, 34, 58],
-  [274, 48, 22], [326, 28, 40], [358, 56, 30], [418, 30, 48], [452, 28, 24],
+//the scene is 480 x 200 units, the background photo is 1536 px wide so 1 px = 0.3125 units
+//it is split into three strips that scroll at different speeds, far things move slower
+//each strip file is the photo strip followed by its mirror image so it loops without a seam
+const K = 480 / 1536
+const layers = [
+  { name: 'sky', top: 0, height: 488, className: 'scroll-sky' },
+  { name: 'barrier', top: 488, height: 57, className: 'scroll-barrier' },
+  { name: 'road', top: 545, height: 319, className: 'scroll-road' },
 ]
-//a few lit windows, as [x, y], picked by hand so it does not look like a pattern
-const windows = [
-  [8, 146], [20, 154], [58, 128], [66, 140], [96, 156], [150, 136], [182, 152], [196, 146],
-  [244, 122], [252, 134], [244, 146], [286, 158], [334, 140], [370, 150], [384, 146], [426, 132], [434, 144],
-]
-//trees and lamps in the middle distance
-const middle = [
-  { x: 30, type: 'tree' }, { x: 150, type: 'lamp' }, { x: 260, type: 'tree' }, { x: 380, type: 'lamp' },
-]
-//roadside marker posts on the far verge
-const posts = [40, 200, 360]
+//moves the photo up so its bottom edge sits at the bottom of the scene
+const BG_Y = 200 - 864 * K
 
-function Tree({ x }) {
-  return (
-    <g fill="#23231f">
-      <rect x={x + 7} y="146" width="4" height="26" />
-      <circle cx={x + 9} cy="140" r="15" />
-      <circle cx={x + 18} cy="148" r="10" />
-    </g>
-  )
-}
-
-//street lamp with a soft pool of light under it
-function Lamp({ x }) {
-  return (
-    <g>
-      <path d={'M ' + (x + 17) + ' 124 L ' + (x + 2) + ' 178 L ' + (x + 34) + ' 178 Z'} className="fill-accent" opacity="0.08" />
-      <rect x={x} y="118" width="3" height="54" fill="#3a3a35" />
-      <rect x={x} y="118" width="18" height="3" fill="#3a3a35" />
-      <rect x={x + 13} y="121" width="8" height="3" className="fill-accent" />
-    </g>
-  )
-}
-
-//where the car photo goes in the scene
-const CAR = { x: 75, y: 76.5, scale: 330 / 1313 }
-//wheel centres in the photo, the tyre radius there is 95 pixels
+//where the supercar photo goes, it is 1422 x 374 and scaled to 330 units wide
+//its tyres touch the bottom of the photo, that lands on the near lane at y 161
+const CAR = { scale: 330 / 1422, x: 75 }
+CAR.y = 161 - 371 * CAR.scale
+//wheel centres in the photo, the tyre radius there is 117 pixels
 const wheels = [
-  { name: 'rear', cx: 269 },
-  { name: 'front', cx: 1064 },
+  { name: 'rear', cx: 249, cy: 254 },
+  { name: 'front', cx: 1088, cy: 257 },
 ]
 //time for one turn so the tyres match the road speed of 120 units a second
-const WHEEL_TURN = ((2 * Math.PI * 95 * CAR.scale) / 120).toFixed(2)
+const WHEEL_TURN = ((2 * Math.PI * 117 * CAR.scale) / 120).toFixed(2)
 
 //hero animation, a night drive, the odometer ticks and the jobs fall due one by one
 function CarScene() {
@@ -92,7 +66,7 @@ function CarScene() {
     <div className="border border-white/15 bg-[#161614] text-white">
       <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
         <div className="min-w-0">
-          <p className="truncate text-sm font-medium">Corolla</p>
+          <p className="truncate text-sm font-medium">Supercar</p>
           <p className="font-mono text-[11px] uppercase tracking-widest text-white/50">1,200 km per month</p>
         </div>
         <div className="text-right">
@@ -103,67 +77,41 @@ function CarScene() {
 
       {/*the road scene, background layers move slower than the road so it feels deep*/}
       <div className="relative overflow-hidden border-b border-white/10 bg-[#161614]">
-        <svg viewBox="0 60 480 150" className="block w-full" role="img" aria-label="A car driving at night past lit buildings and street lamps">
-          <g className="scroll-far">
-            {[0, 480].map((offset) => (
-              <g key={offset} transform={'translate(' + offset + ' 0)'}>
-                {skyline.map(([x, w, h]) => (
-                  <rect key={x} x={x} y={172 - h} width={w} height={h} fill="#242421" />
-                ))}
-                {windows.map(([x, y]) => (
-                  <rect key={x + '-' + y} x={x} y={y} width="4" height="3" fill="#ffb020" opacity="0.55" />
-                ))}
-              </g>
-            ))}
-          </g>
-
-          <g className="scroll-mid">
-            {[0, 480].map((offset) => (
-              <g key={offset} transform={'translate(' + offset + ' 0)'}>
-                {middle.map((m) => (m.type === 'tree' ? <Tree key={m.x} x={m.x} /> : <Lamp key={m.x} x={m.x} />))}
-              </g>
-            ))}
-          </g>
-
-          {/*verge and road*/}
-          <rect x="0" y="172" width="480" height="8" fill="#232320" />
-          <rect x="0" y="178" width="480" height="32" fill="#0b0b0a" />
-          <line x1="0" y1="180.5" x2="480" y2="180.5" stroke="#ffffff" strokeWidth="1.5" opacity="0.2" />
-          <line x1="0" y1="196" x2="480" y2="196" className="road-dash" stroke="#ffffff" strokeWidth="3" strokeDasharray="34 26" opacity="0.55" />
-
-          {/*marker posts on the far verge, they move at road speed*/}
-          <g className="scroll-near">
-            {[0, 480].map((offset) => (
-              <g key={offset} transform={'translate(' + offset + ' 0)'}>
-                {posts.map((x) => (
-                  <g key={x}>
-                    <rect x={x} y="150" width="5" height="28" fill="#cfcdc5" />
-                    <rect x={x} y="155" width="5" height="5" className="fill-accent" />
-                  </g>
-                ))}
-              </g>
-            ))}
-          </g>
+        <svg viewBox="0 0 480 200" className="block w-full" role="img" aria-label="An orange supercar driving along a city waterfront at night">
+          {layers.map((l) => (
+            <g key={l.name} className={l.className}>
+              {[0, 960].map((offset) => (
+                <image
+                  key={offset}
+                  href={'/cars/scene-' + l.name + '.webp'}
+                  x={offset}
+                  y={BG_Y + l.top * K}
+                  width="960"
+                  height={l.height * K}
+                  preserveAspectRatio="none"
+                />
+              ))}
+            </g>
+          ))}
 
           {/*headlight beam on the road ahead*/}
-          <path d="M 398 132 L 480 148 L 480 186 L 398 140 Z" fill="#fff6d8" opacity="0.10" />
+          <path d="M 378 128 L 480 146 L 480 172 L 378 134 Z" fill="#fff6d8" opacity="0.10" />
           {/*shadow under the car*/}
-          <ellipse cx="242" cy="181" rx="168" ry="3.5" fill="#000" opacity="0.6" />
+          <ellipse cx="242" cy="161" rx="158" ry="4" fill="#000" opacity="0.75" />
 
           {/*the car is a photo made with figma, keyed out so it sits on the road*/}
-          {/*photo is 1313 x 414, scaled to 330 wide, its tyres touch y 412 which lands on the road at y 180*/}
           <g className="car-bob">
-            <image href="/cars/night-sedan.webp" x={CAR.x} y={CAR.y} width={1313 * CAR.scale} height={414 * CAR.scale} />
+            <image href="/cars/supercar.webp" x={CAR.x} y={CAR.y} width={1422 * CAR.scale} height={374 * CAR.scale} />
           </g>
           {/*the real wheels are cut out of the photo and laid on top so they can turn*/}
           {wheels.map((wh) => (
             <image
               key={wh.name}
-              href={'/cars/night-wheel-' + wh.name + '.webp'}
-              x={CAR.x + (wh.cx - 96) * CAR.scale}
-              y={CAR.y + (317 - 96) * CAR.scale}
-              width={192 * CAR.scale}
-              height={192 * CAR.scale}
+              href={'/cars/supercar-wheel-' + wh.name + '.webp'}
+              x={CAR.x + (wh.cx - 119) * CAR.scale}
+              y={CAR.y + (wh.cy - 119) * CAR.scale}
+              width={238 * CAR.scale}
+              height={238 * CAR.scale}
               className="wheel-spin"
               style={{ animationDuration: WHEEL_TURN + 's' }}
             />
