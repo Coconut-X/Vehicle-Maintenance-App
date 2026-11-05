@@ -5,6 +5,7 @@ import { daysText, formatDate, kmLeftText, formatKm } from '../format'
 import Field from './Field'
 import StatusBadge from './StatusBadge'
 import Telltale from './Telltale'
+import SegmentBar from './SegmentBar'
 import { btnOutline, btnPrimary } from './ui'
 
 //most urgent first, items that are turned off go last
@@ -43,14 +44,13 @@ const usedPart = (entry) => {
   return Math.min(1, Math.max(0, used))
 }
 
-//thin bar under each item, fills up like a wear gauge as the job comes due
+//gauge under each item, fills up block by block as the job comes due
 function WearBar({ entry }) {
   const used = usedPart(entry)
   if (used === null) return null
-  const colour = entry.status === 'overdue' ? 'bg-bad' : entry.status === 'due_soon' ? 'bg-warn' : 'bg-good'
   return (
-    <div className="mt-2 h-1 max-w-48 bg-paper" title={Math.round(used * 100) + '% of the interval used'}>
-      <div className={'h-1 ' + colour} style={{ width: used * 100 + '%' }} />
+    <div className="mt-2">
+      <SegmentBar part={used} status={entry.status} />
     </div>
   )
 }

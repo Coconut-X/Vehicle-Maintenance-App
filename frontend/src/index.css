@@ -22,7 +22,8 @@
   /*warning lamp colours, brighter because they sit on the dark lamp square*/
   --color-lamp-red: #ff5a45;
   --color-lamp-amber: #ffb020;
-  --color-lamp-off: #55554f;
+  --color-lamp-off: #6b6b64;
+  --color-lamp-green: #4cc38a;
 
   /*no rounded corners anywhere, this removes the rounded-* classes on purpose*/
   --radius-*: initial;

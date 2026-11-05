@@ -5,6 +5,7 @@ import { formatDate, formatKm, powertrainLabel, vehicleName } from '../format'
 import ConfirmBox from '../components/ConfirmBox'
 import ScheduleTable from '../components/ScheduleTable'
 import StatusBadge from '../components/StatusBadge'
+import Plate from '../components/Plate'
 import CarArt from '../components/CarArt'
 import Odometer from '../components/Odometer'
 import { btnOutline, btnPrimary, labelClass } from '../components/ui'
@@ -113,10 +114,13 @@ function VehicleDetail() {
               <h1 className="text-3xl font-semibold tracking-tight">{name}</h1>
               <StatusBadge status={summary} />
             </div>
-            <p className="mt-1 font-mono text-xs text-muted">
-              {vehicle.nickname ? vehicle.make + ' ' + vehicle.model + ' / ' : ''}
-              {vehicle.registrationNo} / {vehicle.year} / {powertrainLabel(vehicle.powertrain)}
-            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              <Plate number={vehicle.registrationNo} />
+              <span className="font-mono text-xs text-muted">
+                {vehicle.nickname ? vehicle.make + ' ' + vehicle.model + ' / ' : ''}
+                {vehicle.year} / {powertrainLabel(vehicle.powertrain)}
+              </span>
+            </div>
           </div>
         </div>
         <div className="flex flex-wrap gap-3">

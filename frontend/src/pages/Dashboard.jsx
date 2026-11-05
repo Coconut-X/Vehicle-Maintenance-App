@@ -7,13 +7,15 @@ import ErrorNote from '../components/ErrorNote'
 import Loading from '../components/Loading'
 import StatusBadge from '../components/StatusBadge'
 import Telltale from '../components/Telltale'
+import Plate from '../components/Plate'
 import { btnPrimary, labelClass } from '../components/ui'
 
+//one readout in the dark instrument strip, the number lights up only when it matters
 function Total({ label, value, tone }) {
   return (
-    <div className="bg-card p-4 md:p-5">
-      <p className={labelClass}>{label}</p>
-      <p className={'mt-1 font-mono text-3xl ' + tone}>{value}</p>
+    <div className="bg-ink p-4 md:p-5">
+      <p className="font-mono text-[11px] uppercase tracking-widest text-lamp-off">{label}</p>
+      <p className={'mt-1 font-mono text-3xl tabular-nums ' + tone}>{String(value).padStart(2, '0')}</p>
     </div>
   )
 }
@@ -67,11 +69,11 @@ function Dashboard() {
 
       {data && !noVehicles && (
         <>
-          <div className="mt-8 grid grid-cols-2 gap-px border border-line bg-line md:grid-cols-4">
-            <Total label="overdue" value={data.totals.overdue} tone={data.totals.overdue > 0 ? 'text-bad' : ''} />
-            <Total label="due soon" value={data.totals.due_soon} tone={data.totals.due_soon > 0 ? 'text-warn' : ''} />
-            <Total label="needs data" value={data.totals.unknown} tone="text-muted" />
-            <Total label="up to date" value={data.totals.up_to_date} tone="text-good" />
+          <div className="mt-8 grid grid-cols-2 gap-px border border-ink bg-[#2c2c29] md:grid-cols-4">
+            <Total label="overdue" value={data.totals.overdue} tone={data.totals.overdue > 0 ? 'text-lamp-red' : 'text-lamp-off'} />
+            <Total label="due soon" value={data.totals.due_soon} tone={data.totals.due_soon > 0 ? 'text-lamp-amber' : 'text-lamp-off'} />
+            <Total label="needs data" value={data.totals.unknown} tone={data.totals.unknown > 0 ? 'text-white' : 'text-lamp-off'} />
+            <Total label="up to date" value={data.totals.up_to_date} tone="text-lamp-green" />
           </div>
 
           <h2 className="mt-12 font-semibold tracking-tight">Needs attention</h2>
@@ -129,7 +131,9 @@ function Dashboard() {
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">{vehicleName(v)}</p>
-                    <p className="font-mono text-xs text-muted">{v.registrationNo}</p>
+                    <div className="mt-1">
+                      <Plate number={v.registrationNo} size="sm" />
+                    </div>
                   </div>
                   <div className="flex items-center gap-4">
                     <p className="hidden font-mono text-xs text-muted sm:block">

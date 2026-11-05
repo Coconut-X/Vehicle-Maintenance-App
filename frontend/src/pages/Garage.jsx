@@ -5,6 +5,7 @@ import { formatKm, powertrainLabel, vehicleName } from '../format'
 import Field from '../components/Field'
 import Select from '../components/Select'
 import StatusBadge from '../components/StatusBadge'
+import Plate from '../components/Plate'
 import Pagination from '../components/Pagination'
 import CarArt from '../components/CarArt'
 import { btnOutline, btnPrimary, labelClass } from '../components/ui'
@@ -40,9 +41,12 @@ function VehicleCard({ v }) {
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="truncate font-medium">{vehicleName(v)}</p>
-            <p className="font-mono text-xs text-muted">
-              {v.registrationNo} / {v.year} / {powertrainLabel(v.powertrain)}
-            </p>
+            <div className="mt-1.5 flex items-center gap-2">
+              <Plate number={v.registrationNo} size="sm" />
+              <span className="font-mono text-xs text-muted">
+                {v.year} / {powertrainLabel(v.powertrain)}
+              </span>
+            </div>
           </div>
           <StatusBadge status={v.summary} />
         </div>
