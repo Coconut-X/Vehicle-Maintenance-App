@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import api, { readError } from '../api'
 import { daysText, formatDate, kmLeftText, formatKm } from '../format'
 import Field from './Field'
@@ -218,6 +219,12 @@ function ScheduleTable({ entries, vehicle, onChanged }) {
               <div className="flex items-center justify-between gap-4 md:justify-end">
                 <StatusBadge status={entry.status} />
                 <div className="flex gap-3 text-xs">
+                  <Link
+                    to={'/vehicles/' + vehicle._id + '/log?item=' + entry.item._id}
+                    className="underline underline-offset-4 hover:text-accent"
+                  >
+                    Log service
+                  </Link>
                   <button
                     onClick={() => setEditingId(editingId === entry._id ? null : entry._id)}
                     className="underline underline-offset-4 hover:text-accent"

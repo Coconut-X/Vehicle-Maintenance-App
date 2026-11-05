@@ -12,6 +12,8 @@ import Dashboard from './pages/Dashboard'
 import Garage from './pages/Garage'
 import VehicleForm from './pages/VehicleForm'
 import VehicleDetail from './pages/VehicleDetail'
+import LogService from './pages/LogService'
+import History from './pages/History'
 import NotFound from './pages/NotFound'
 
 function App() {
@@ -42,6 +44,8 @@ function App() {
             <Route path="/vehicles/new" element={<VehicleForm />} />
             <Route path="/vehicles/:id" element={<VehicleDetail />} />
             <Route path="/vehicles/:id/edit" element={<VehicleForm />} />
+            <Route path="/vehicles/:id/log" element={<LogService />} />
+            <Route path="/history" element={<History />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />

@@ -18,7 +18,7 @@ function Navbar() {
   return (
     <header className="sticky top-0 z-10 border-b border-line bg-paper/90 backdrop-blur">
       <nav className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
-        <div className="flex items-center gap-4 sm:gap-6">
+        <div className="flex items-center gap-3 sm:gap-6">
           <Link to="/" className="flex items-center gap-2">
             <span className="flex h-6 w-6 items-center justify-center bg-ink font-mono text-xs font-medium text-accent">
               cv
@@ -32,6 +32,9 @@ function Navbar() {
               </NavLink>
               <NavLink to="/garage" className={linkClass}>
                 Garage
+              </NavLink>
+              <NavLink to="/history" className={linkClass}>
+                History
               </NavLink>
             </>
           )}

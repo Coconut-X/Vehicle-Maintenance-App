@@ -5,7 +5,7 @@ import { formatDate, formatKm, vehicleName } from '../format'
 import ConfirmBox from '../components/ConfirmBox'
 import ScheduleTable from '../components/ScheduleTable'
 import StatusBadge from '../components/StatusBadge'
-import { btnOutline, labelClass } from '../components/ui'
+import { btnOutline, btnPrimary, labelClass } from '../components/ui'
 
 function Stat({ label, value, note }) {
   return (
@@ -89,6 +89,7 @@ function VehicleDetail() {
   const { vehicle, projection, schedule, summary } = result
   const name = vehicleName(vehicle)
   const warning = location.state?.warning
+  const notice = location.state?.notice
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-12">
@@ -112,7 +113,13 @@ function VehicleDetail() {
             </p>
           </div>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
+          <Link to={'/vehicles/' + id + '/log'} className={btnPrimary}>
+            Log service
+          </Link>
+          <Link to={'/history?vehicle=' + id} className={btnOutline}>
+            History
+          </Link>
           <Link to={'/vehicles/' + id + '/edit'} className={btnOutline}>
             Edit
           </Link>
@@ -121,6 +128,12 @@ function VehicleDetail() {
           </button>
         </div>
       </div>
+
+      {notice && (
+        <p role="status" className="mt-6 border border-good bg-card px-3 py-2 text-sm text-good">
+          {notice}
+        </p>
+      )}
 
       {warning && (
         <p role="status" className="mt-6 border border-warn bg-card px-3 py-2 text-sm text-warn">
