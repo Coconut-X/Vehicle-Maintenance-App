@@ -34,3 +34,21 @@ export const formatMoney = (amount) => {
   if (amount === null || amount === undefined) return '-'
   return Number(amount).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
 }
+
+//short and long names for the powertrain choices
+export const powertrains = [
+  { value: 'petrol', label: 'Petrol', long: 'Petrol engine only' },
+  { value: 'hybrid', label: 'Hybrid', long: 'Self charging hybrid (HEV)' },
+  { value: 'phev', label: 'Plug-in hybrid', long: 'Plug-in hybrid (PHEV)' },
+  { value: 'electric', label: 'Electric', long: 'Fully electric (EV)' },
+]
+
+export const powertrainLabel = (value) => {
+  const found = powertrains.find((p) => p.value === value)
+  return found ? found.label : 'Petrol'
+}
+
+//same rule as the backend, empty list means every car needs the item
+export const itemFits = (item, powertrain) => {
+  return !item.powertrains || item.powertrains.length === 0 || item.powertrains.includes(powertrain || 'petrol')
+}

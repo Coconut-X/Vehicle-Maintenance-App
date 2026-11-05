@@ -10,6 +10,7 @@ const { calcDue } = require("../utils/dueDate");
 const { getStatus, worstStatus } = require("../utils/status");
 const { evaluateVehicle } = require("../utils/vehicleStatus");
 const { getString, getPaging, escapeRegex, pageInfo } = require("../utils/listQuery");
+const { POWERTRAINS } = require("../seed/catalogue");
 
 const isWholeNumber = (v, min, max) => {
   const n = Number(v);
@@ -44,6 +45,9 @@ const validateVehicle = (body, partial) => {
   if (has("avgMonthlyKm")) {
     if (!isWholeNumber(body.avgMonthlyKm, 0, 20000)) errors.avgMonthlyKm = "monthly km must be a whole number from 0 to 20000";
   }
+  if (has("powertrain") && !POWERTRAINS.includes(body.powertrain)) {
+    errors.powertrain = "powertrain must be petrol, hybrid, phev or electric";
+  }
   if (has("nickname") && body.nickname !== "") {
     if (!isText(body.nickname, 1, 40)) errors.nickname = "nickname can be at most 40 characters";
   }
@@ -54,7 +58,7 @@ const validateVehicle = (body, partial) => {
 //only take the fields we allow, so owner or other stuff cant be sent from client
 const pickFields = (body) => {
   const data = {};
-  const allowed = ["make", "model", "year", "registrationNo", "nickname", "odometerKm", "avgMonthlyKm"];
+  const allowed = ["make", "model", "year", "registrationNo", "nickname", "odometerKm", "avgMonthlyKm", "powertrain"];
   allowed.forEach((field) => {
     if (body[field] !== undefined) {
       data[field] = typeof body[field] === "string" ? body[field].trim() : body[field];
@@ -91,6 +95,35 @@ const savePhoto = async (vehicle, file) => {
   }
 };
 
+const newEntry = (vehicle, item) => ({
+  owner: vehicle.owner,
+  vehicle: vehicle._id,
+  item: item._id,
+  intervalKm: item.defaultIntervalKm,
+  intervalMonths: item.defaultIntervalMonths,
+  enabled: item.appliesTo(vehicle.powertrain),
+  baselineDate: vehicle.odometerDate,
+  baselineKm: vehicle.odometerKm,
+  baselineSource: "initial",
+});
+
+//after the powertrain changes turn items on or off to match, and add items the car never had
+//this also resets items the user turned off by hand, the ui warns about it
+const syncPowertrain = async (vehicle) => {
+  const items = await CatalogueItem.find();
+  const entries = await ScheduleEntry.find({ vehicle: vehicle._id, owner: vehicle.owner });
+
+  for (const item of items) {
+    const entry = entries.find((e) => e.item.toString() === item._id.toString());
+    if (entry) {
+      entry.enabled = item.appliesTo(vehicle.powertrain);
+      await entry.save();
+    } else {
+      await ScheduleEntry.create(newEntry(vehicle, item));
+    }
+  }
+};
+
 const createVehicle = async (req, res) => {
   const body = req.body || {};
   const errors = validateVehicle(body, false);
@@ -116,17 +149,9 @@ const createVehicle = async (req, res) => {
 
   //copy every catalogue item into this vehicles schedule
   //copying instead of linking so changing a default later wont move existing due dates
+  //items that dont fit the powertrain are copied too but turned off, so a later change can bring them back
   const items = await CatalogueItem.find();
-  const entries = items.map((item) => ({
-    owner: req.userId,
-    vehicle: vehicle._id,
-    item: item._id,
-    intervalKm: item.defaultIntervalKm,
-    intervalMonths: item.defaultIntervalMonths,
-    baselineDate: vehicle.odometerDate,
-    baselineKm: vehicle.odometerKm,
-    baselineSource: "initial",
-  }));
+  const entries = items.map((item) => newEntry(vehicle, item));
   await ScheduleEntry.insertMany(entries);
 
   const warning = await savePhoto(vehicle, req.file);
@@ -199,10 +224,12 @@ const getSchedule = async (req, res) => {
     return res.status(404).json({ message: "vehicle not found" });
   }
 
-  const schedule = await ScheduleEntry.find({ vehicle: vehicle._id, owner: req.userId }).populate(
+  const all = await ScheduleEntry.find({ vehicle: vehicle._id, owner: req.userId }).populate(
     "item",
-    "name category notes"
+    "name category notes powertrains"
   );
+  //an electric car doesnt need to see engine oil at all, not even as turned off
+  const schedule = all.filter((entry) => entry.item && entry.item.appliesTo(vehicle.powertrain));
 
   //add the computed due point and status to every entry
   const now = new Date();
@@ -248,8 +275,12 @@ const updateVehicle = async (req, res) => {
     data.usageDerived = false;
   }
 
+  const powertrainChanged = data.powertrain !== undefined && data.powertrain !== vehicle.powertrain;
+
   Object.assign(vehicle, data);
   await vehicle.save();
+
+  if (powertrainChanged) await syncPowertrain(vehicle);
 
   const warning = await savePhoto(vehicle, req.file);
   res.json({ vehicle, warning });

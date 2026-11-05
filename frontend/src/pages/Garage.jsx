@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import api, { readError } from '../api'
-import { formatKm, vehicleName } from '../format'
+import { formatKm, powertrainLabel, vehicleName } from '../format'
 import Field from '../components/Field'
 import Select from '../components/Select'
 import StatusBadge from '../components/StatusBadge'
@@ -42,7 +42,7 @@ function VehicleCard({ v }) {
           <div className="min-w-0">
             <p className="truncate font-medium">{vehicleName(v)}</p>
             <p className="font-mono text-xs text-muted">
-              {v.registrationNo} / {v.year}
+              {v.registrationNo} / {v.year} / {powertrainLabel(v.powertrain)}
             </p>
           </div>
           <StatusBadge status={v.summary} />

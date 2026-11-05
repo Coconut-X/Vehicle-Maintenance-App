@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import api, { readError } from '../api'
 import { validateVehicle } from '../validate'
-import { vehicleName } from '../format'
+import { powertrains, vehicleName } from '../format'
 import Field from '../components/Field'
 import { btnOutline, btnPrimary, labelClass } from '../components/ui'
 
@@ -14,6 +14,7 @@ const emptyForm = {
   nickname: '',
   odometerKm: '',
   avgMonthlyKm: '',
+  powertrain: 'petrol',
 }
 
 //used for both adding (/vehicles/new) and editing (/vehicles/:id/edit)
@@ -26,6 +27,7 @@ function VehicleForm() {
   const [photo, setPhoto] = useState(null)
   const [savedPhotoUrl, setSavedPhotoUrl] = useState('')
   const [title, setTitle] = useState('')
+  const [savedPowertrain, setSavedPowertrain] = useState('petrol')
 
   const [errors, setErrors] = useState({})
   const [formError, setFormError] = useState('')
@@ -50,7 +52,9 @@ function VehicleForm() {
           nickname: v.nickname || '',
           odometerKm: String(v.odometerKm),
           avgMonthlyKm: v.avgMonthlyKm ? String(v.avgMonthlyKm) : '',
+          powertrain: v.powertrain || 'petrol',
         })
+        setSavedPowertrain(v.powertrain || 'petrol')
         setSavedPhotoUrl(v.photoUrl || '')
         setTitle(vehicleName(v))
         setLoading(false)
@@ -97,6 +101,7 @@ function VehicleForm() {
     body.append('year', form.year)
     body.append('registrationNo', form.registrationNo.trim())
     body.append('odometerKm', form.odometerKm)
+    body.append('powertrain', form.powertrain)
     if (isEdit || form.nickname.trim() !== '') body.append('nickname', form.nickname.trim())
     if (form.avgMonthlyKm !== '') body.append('avgMonthlyKm', form.avgMonthlyKm)
     if (photo) body.append('photo', photo)
@@ -184,6 +189,44 @@ function VehicleForm() {
             hint="Used to estimate the odometer between readings. Needed to predict km-based jobs."
           />
         </div>
+
+        <fieldset>
+          <legend className={labelClass}>Powertrain</legend>
+          <div className="mt-1.5 grid grid-cols-2 gap-px border border-line bg-line sm:grid-cols-4">
+            {powertrains.map((p) => (
+              <label
+                key={p.value}
+                className={
+                  'cursor-pointer px-3 py-2.5 text-sm transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ink ' +
+                  (form.powertrain === p.value ? 'bg-ink text-white' : 'bg-card hover:bg-paper')
+                }
+              >
+                <input
+                  type="radio"
+                  name="powertrain"
+                  value={p.value}
+                  checked={form.powertrain === p.value}
+                  onChange={handleChange}
+                  className="sr-only"
+                />
+                <span className="block font-medium">{p.label}</span>
+                <span className={'block font-mono text-[11px] ' + (form.powertrain === p.value ? 'text-white/70' : 'text-muted')}>
+                  {p.value === 'petrol' ? 'ICE' : p.value === 'hybrid' ? 'HEV' : p.value === 'phev' ? 'PHEV' : 'EV'}
+                </span>
+              </label>
+            ))}
+          </div>
+          <p className="mt-1 text-xs text-muted">
+            {isEdit && form.powertrain !== savedPowertrain
+              ? 'Saving turns schedule items on or off to match the new powertrain. Items you turned off by hand come back on.'
+              : form.powertrain === 'electric'
+                ? 'No engine oil, filters, spark plugs or timing belt. Adds a high voltage battery check.'
+                : form.powertrain === 'petrol'
+                  ? 'All standard engine and chassis items.'
+                  : 'Engine items plus a high voltage battery check.'}
+          </p>
+          {errors.powertrain && <p className="mt-1 text-xs text-bad">{errors.powertrain}</p>}
+        </fieldset>
 
         <Field
           label="Nickname (optional)"

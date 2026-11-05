@@ -40,6 +40,12 @@ const vehicleSchema = new mongoose.Schema(
       minlength: 1,
       maxlength: 20,
     },
+    //decides which catalogue items the car gets
+    powertrain: {
+      type: String,
+      enum: ["petrol", "hybrid", "phev", "electric"],
+      default: "petrol",
+    },
     nickname: {
       type: String,
       trim: true,

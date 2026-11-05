@@ -26,7 +26,17 @@ const catalogueItemSchema = new mongoose.Schema({
     type: String,
     trim: true,
   },
+  //which powertrains need this item, empty means all of them
+  powertrains: {
+    type: [String],
+    default: [],
+  },
 });
+
+//true when this item is needed for a car with that powertrain
+catalogueItemSchema.methods.appliesTo = function (powertrain) {
+  return !this.powertrains || this.powertrains.length === 0 || this.powertrains.includes(powertrain);
+};
 
 //an item needs km or months or both
 catalogueItemSchema.pre("validate", function () {

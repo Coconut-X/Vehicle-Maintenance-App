@@ -132,6 +132,9 @@ const createService = async (req, res) => {
   if (!item) {
     return res.status(422).json({ message: "validation failed", errors: { item: "maintenance item not found" } });
   }
+  if (!item.appliesTo(vehicle.powertrain)) {
+    return res.status(422).json({ message: "validation failed", errors: { item: "this item is not used on a " + vehicle.powertrain + " car" } });
+  }
 
   const data = pickFields(body);
   data.serviceDate = new Date(data.serviceDate);

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import api, { readError } from '../api'
 import { validateService } from '../validate'
-import { formatDate, vehicleName } from '../format'
+import { formatDate, itemFits, vehicleName } from '../format'
 import ErrorNote from '../components/ErrorNote'
 import Field from '../components/Field'
 import Loading from '../components/Loading'
@@ -41,7 +41,9 @@ function LogService() {
         if (cancelled) return
         const vehicle = v.data.vehicle
         const projection = v.data.projection
-        setData({ id, vehicle, projection, items: c.data.items })
+        //only the items this car actually needs, no engine oil for an electric car
+        const items = c.data.items.filter((i) => itemFits(i, vehicle.powertrain))
+        setData({ id, vehicle, projection, items })
 
         //the km field starts with the estimate, the user confirms or corrects it
         setForm({

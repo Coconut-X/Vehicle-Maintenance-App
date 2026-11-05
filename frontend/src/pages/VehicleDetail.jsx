@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import api, { readError } from '../api'
-import { formatDate, formatKm, vehicleName } from '../format'
+import { formatDate, formatKm, powertrainLabel, vehicleName } from '../format'
 import ConfirmBox from '../components/ConfirmBox'
 import ScheduleTable from '../components/ScheduleTable'
 import StatusBadge from '../components/StatusBadge'
@@ -109,7 +109,7 @@ function VehicleDetail() {
             </div>
             <p className="mt-1 font-mono text-xs text-muted">
               {vehicle.nickname ? vehicle.make + ' ' + vehicle.model + ' / ' : ''}
-              {vehicle.registrationNo} / {vehicle.year}
+              {vehicle.registrationNo} / {vehicle.year} / {powertrainLabel(vehicle.powertrain)}
             </p>
           </div>
         </div>

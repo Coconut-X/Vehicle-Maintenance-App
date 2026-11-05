@@ -8,7 +8,8 @@ You add your cars, CarVault gives each one a maintenance schedule (oil, brakes, 
 
 - Register and login with JWT
 - Garage with search, filter, sort and pagination
-- 18 item maintenance catalogue copied into every new vehicle, intervals can be changed or turned off per vehicle
+- Powertrain per car (petrol, hybrid, plug-in hybrid, electric) decides which items it gets, an electric car has no engine oil but gets a high voltage battery check
+- Maintenance catalogue (the 18 items of srs appendix A plus a high voltage battery check) copied into every new vehicle, intervals can be changed or turned off per vehicle
 - Due date engine: whichever of the time or km interval comes first wins
 - Status for every item: overdue, due soon, up to date or needs data (shown as text and colour)
 - Service history with receipts, logging a service resets that item and updates the avg km per month
@@ -112,7 +113,7 @@ The app opens on http://localhost:5173.
 | --- | --- | --- |
 | backend | `npm run dev` | api with nodemon |
 | backend | `npm start` | api without nodemon |
-| backend | `npm run seed` | adds the 18 catalogue items |
+| backend | `npm run seed` | adds or updates the catalogue items, run it again after pulling new items |
 | backend | `npm run reminders` | runs the reminder sweep once right now |
 | frontend | `npm run dev` | vite dev server |
 | frontend | `npm run build` | production build into `dist` |
@@ -131,13 +132,13 @@ All routes start with `/api`. Everything except register and login needs an `Aut
 | PUT | `/users/me/password` | change password |
 | DELETE | `/users/me` | delete account and all its data |
 | GET | `/vehicles` | list with `search`, `status`, `sort`, `page`, `limit` |
-| POST | `/vehicles` | add a vehicle (multipart, optional `photo`) |
+| POST | `/vehicles` | add a vehicle (multipart, optional `photo`, `powertrain` petrol, hybrid, phev or electric) |
 | GET | `/vehicles/:id` | one vehicle |
 | GET | `/vehicles/:id/schedule` | its items with due dates and status |
 | PUT | `/vehicles/:id` | edit |
 | DELETE | `/vehicles/:id` | delete with its schedule, services and reminders |
 | PUT | `/schedule/:entryId` | change intervals or turn an item off |
-| GET | `/catalogue` | the 18 default items |
+| GET | `/catalogue` | the default items with the powertrains each one fits |
 | GET | `/services` | history with filters and pagination |
 | POST | `/services` | log a service (multipart, optional `receipt`) |
 | PUT | `/services/:id` | edit a service |

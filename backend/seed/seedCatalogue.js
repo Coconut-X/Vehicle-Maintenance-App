@@ -3,7 +3,7 @@
 require("dotenv").config();
 const mongoose = require("mongoose");
 const CatalogueItem = require("../models/CatalogueItem");
-const items = require("./catalogue");
+const { items } = require("./catalogue");
 
 const seed = async () => {
   try {
