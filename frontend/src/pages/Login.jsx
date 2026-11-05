@@ -5,6 +5,7 @@ import api, { readError } from '../api'
 import { loginSuccess } from '../store/authSlice'
 import { validateLogin } from '../validate'
 import Field from '../components/Field'
+import AuthLayout from '../components/AuthLayout'
 import { btnPrimary, labelClass } from '../components/ui'
 
 function Login() {
@@ -50,50 +51,52 @@ function Login() {
   }
 
   return (
-    <div className="mx-auto max-w-sm px-6 py-16">
-      <p className={labelClass + ' !text-accent'}>log in</p>
-      <h1 className="mt-3 text-3xl font-semibold tracking-tight">Welcome back.</h1>
-      <p className="mt-2 text-sm text-muted">Log in to see what your vehicles need.</p>
+    <AuthLayout>
+      <div className="w-full max-w-sm">
+        <p className={labelClass + ' !text-accent'}>log in</p>
+        <h1 className="mt-3 text-3xl font-semibold tracking-tight">Welcome back.</h1>
+        <p className="mt-2 text-sm text-muted">Log in to see what your vehicles need.</p>
 
-      {formError && (
-        <p role="alert" className="mt-6 border border-bad bg-card px-3 py-2 text-sm text-bad">
-          {formError}
+        {formError && (
+          <p role="alert" className="mt-6 border border-bad bg-card px-3 py-2 text-sm text-bad">
+            {formError}
+          </p>
+        )}
+
+        <form onSubmit={handleSubmit} noValidate className="mt-6 space-y-4">
+          <Field
+            label="Email"
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            value={form.email}
+            onChange={handleChange}
+            error={errors.email}
+          />
+          <Field
+            label="Password"
+            id="password"
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            value={form.password}
+            onChange={handleChange}
+            error={errors.password}
+          />
+          <button type="submit" disabled={loading} className={btnPrimary + ' w-full'}>
+            {loading ? 'Logging in...' : 'Log in'}
+          </button>
+        </form>
+
+        <p className="mt-6 text-sm text-muted">
+          No account yet?{' '}
+          <Link to="/register" className="text-ink underline underline-offset-4 hover:text-accent">
+            Create one
+          </Link>
         </p>
-      )}
-
-      <form onSubmit={handleSubmit} noValidate className="mt-6 space-y-4">
-        <Field
-          label="Email"
-          id="email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          value={form.email}
-          onChange={handleChange}
-          error={errors.email}
-        />
-        <Field
-          label="Password"
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          value={form.password}
-          onChange={handleChange}
-          error={errors.password}
-        />
-        <button type="submit" disabled={loading} className={btnPrimary + ' w-full'}>
-          {loading ? 'Logging in...' : 'Log in'}
-        </button>
-      </form>
-
-      <p className="mt-6 text-sm text-muted">
-        No account yet?{' '}
-        <Link to="/register" className="text-ink underline underline-offset-4 hover:text-accent">
-          Create one
-        </Link>
-      </p>
-    </div>
+      </div>
+    </AuthLayout>
   )
 }
 

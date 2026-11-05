@@ -40,9 +40,9 @@ function Navbar() {
     <header className="sticky top-0 z-10 border-b border-line bg-paper/90 backdrop-blur">
       <nav className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 px-6">
         <div className="flex h-14 items-center gap-6">
-          <Link to="/" className="flex items-center gap-2">
-            <Logo size={26} />
-            <span className="font-semibold tracking-tight">carvault</span>
+          <Link to="/" className="flex items-center gap-2.5">
+            <Logo size={36} />
+            <span className="hidden font-display text-lg font-bold tracking-tight [font-stretch:125%] sm:inline">carvault</span>
           </Link>
           {token && (
             <div className="hidden items-center gap-6 md:flex">

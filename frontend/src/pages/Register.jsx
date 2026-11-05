@@ -5,6 +5,7 @@ import api, { readError } from '../api'
 import { loginSuccess } from '../store/authSlice'
 import { validateRegister } from '../validate'
 import Field from '../components/Field'
+import AuthLayout from '../components/AuthLayout'
 import { btnPrimary, labelClass } from '../components/ui'
 
 function Register() {
@@ -50,73 +51,75 @@ function Register() {
   }
 
   return (
-    <div className="mx-auto max-w-sm px-6 py-16">
-      <p className={labelClass + ' !text-accent'}>create account</p>
-      <h1 className="mt-3 text-3xl font-semibold tracking-tight">Start tracking.</h1>
-      <p className="mt-2 text-sm text-muted">Free. Add your first vehicle in under a minute.</p>
+    <AuthLayout>
+      <div className="w-full max-w-sm">
+        <p className={labelClass + ' !text-accent'}>create account</p>
+        <h1 className="mt-3 text-3xl font-semibold tracking-tight">Start tracking.</h1>
+        <p className="mt-2 text-sm text-muted">Free. Add your first vehicle in under a minute.</p>
 
-      {formError && (
-        <p role="alert" className="mt-6 border border-bad bg-card px-3 py-2 text-sm text-bad">
-          {formError}
+        {formError && (
+          <p role="alert" className="mt-6 border border-bad bg-card px-3 py-2 text-sm text-bad">
+            {formError}
+          </p>
+        )}
+
+        <form onSubmit={handleSubmit} noValidate className="mt-6 space-y-4">
+          <Field
+            label="Name"
+            id="name"
+            name="name"
+            autoComplete="name"
+            value={form.name}
+            onChange={handleChange}
+            error={errors.name}
+          />
+          <Field
+            label="Email"
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            value={form.email}
+            onChange={handleChange}
+            error={errors.email}
+          />
+          <Field
+            label="Password"
+            id="password"
+            name="password"
+            type="password"
+            autoComplete="new-password"
+            value={form.password}
+            onChange={handleChange}
+            error={errors.password}
+            hint="At least 8 characters, with a letter and a number."
+          />
+          <Field
+            label="Km you drive per month (optional)"
+            id="defaultMonthlyKm"
+            name="defaultMonthlyKm"
+            type="number"
+            inputMode="numeric"
+            min="0"
+            max="20000"
+            value={form.defaultMonthlyKm}
+            onChange={handleChange}
+            error={errors.defaultMonthlyKm}
+            hint="Used to estimate your odometer between readings. You can change it per vehicle."
+          />
+          <button type="submit" disabled={loading} className={btnPrimary + ' w-full'}>
+            {loading ? 'Creating account...' : 'Create account'}
+          </button>
+        </form>
+
+        <p className="mt-6 text-sm text-muted">
+          Already have an account?{' '}
+          <Link to="/login" className="text-ink underline underline-offset-4 hover:text-accent">
+            Log in
+          </Link>
         </p>
-      )}
-
-      <form onSubmit={handleSubmit} noValidate className="mt-6 space-y-4">
-        <Field
-          label="Name"
-          id="name"
-          name="name"
-          autoComplete="name"
-          value={form.name}
-          onChange={handleChange}
-          error={errors.name}
-        />
-        <Field
-          label="Email"
-          id="email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          value={form.email}
-          onChange={handleChange}
-          error={errors.email}
-        />
-        <Field
-          label="Password"
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="new-password"
-          value={form.password}
-          onChange={handleChange}
-          error={errors.password}
-          hint="At least 8 characters, with a letter and a number."
-        />
-        <Field
-          label="Km you drive per month (optional)"
-          id="defaultMonthlyKm"
-          name="defaultMonthlyKm"
-          type="number"
-          inputMode="numeric"
-          min="0"
-          max="20000"
-          value={form.defaultMonthlyKm}
-          onChange={handleChange}
-          error={errors.defaultMonthlyKm}
-          hint="Used to estimate your odometer between readings. You can change it per vehicle."
-        />
-        <button type="submit" disabled={loading} className={btnPrimary + ' w-full'}>
-          {loading ? 'Creating account...' : 'Create account'}
-        </button>
-      </form>
-
-      <p className="mt-6 text-sm text-muted">
-        Already have an account?{' '}
-        <Link to="/login" className="text-ink underline underline-offset-4 hover:text-accent">
-          Log in
-        </Link>
-      </p>
-    </div>
+      </div>
+    </AuthLayout>
   )
 }
 
