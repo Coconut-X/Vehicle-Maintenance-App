@@ -28,3 +28,9 @@ export const kmLeftText = (km) => {
   if (km < 0) return formatKm(Math.abs(km)) + ' over'
   return formatKm(km) + ' left'
 }
+
+//cost without a currency symbol, up to 2 decimals
+export const formatMoney = (amount) => {
+  if (amount === null || amount === undefined) return '-'
+  return Number(amount).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+}
