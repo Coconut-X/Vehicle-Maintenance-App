@@ -90,6 +90,34 @@
     animation: needle-sweep 1.4s cubic-bezier(0.2, 0.8, 0.2, 1);
   }
 
+  /*moving car parts on the vehicle page*/
+  .part-spin {
+    transform-box: view-box;
+    transform-origin: 32px 32px;
+    animation: wheel-spin 3s linear infinite;
+  }
+  .fluid-wave {
+    animation: fluid-wave 1.6s linear infinite;
+  }
+  .fluid-bubble {
+    animation: fluid-bubble 2.1s ease-in infinite;
+  }
+  .air-flow {
+    animation: air-flow 0.6s linear infinite;
+  }
+  .heat-pulse {
+    animation: heat-pulse 1.8s ease-in-out infinite;
+  }
+  .lamp-blink {
+    animation: lamp-blink 1s steps(2, jump-none) infinite;
+  }
+  /*orange scanner line that sweeps across the xray car*/
+  .xray-scan {
+    left: -6rem;
+    background: linear-gradient(90deg, transparent, rgb(242 101 34 / 0.22), transparent);
+    animation: xray-scan 5s linear infinite;
+  }
+
   /*scroll reveal, set by js only on things below the first screen*/
   .reveal-wait {
     opacity: 0;
@@ -132,14 +160,62 @@
   }
 }
 
+/*the wave path repeats every 16 units so moving it 16 looks endless*/
+@keyframes fluid-wave {
+  to {
+    transform: translateX(16px);
+  }
+}
+@keyframes fluid-bubble {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-24px);
+    opacity: 0;
+  }
+}
+@keyframes air-flow {
+  to {
+    stroke-dashoffset: -6;
+  }
+}
+@keyframes heat-pulse {
+  50% {
+    opacity: 0.15;
+  }
+}
+@keyframes lamp-blink {
+  50% {
+    opacity: 0.15;
+  }
+}
+@keyframes xray-scan {
+  to {
+    left: 100%;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .wheel-spin,
   .scroll-road,
   .scroll-barrier,
   .scroll-sky,
   .car-bob,
-  .reveal-in .gauge-needle {
+  .reveal-in .gauge-needle,
+  .part-spin,
+  .fluid-wave,
+  .fluid-bubble,
+  .air-flow,
+  .heat-pulse,
+  .lamp-blink,
+  .xray-scan,
+  .animate-ping {
     animation: none;
+  }
+  .xray-scan {
+    display: none;
   }
 }
 
