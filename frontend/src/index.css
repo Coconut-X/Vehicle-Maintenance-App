@@ -44,20 +44,31 @@
 }
 
 /*landing page motion, all of it stops for people who ask for reduced motion*/
+/*the road moves 120 units a second, every speed below comes from that number*/
+/*wheel turn = tyre circumference 2 x pi x 30 = 188.5 units, so 188.5 / 120 = 1.57s per turn*/
 @layer components {
   .wheel-spin {
     transform-box: fill-box;
     transform-origin: center;
-    animation: wheel-spin 0.6s linear infinite;
+    animation: wheel-spin 1.57s linear infinite;
   }
+  /*dash pattern is 60 units long, 60 / 120 = 0.5s*/
   .road-dash {
     animation: road-dash 0.5s linear infinite;
   }
-  .road-posts {
-    animation: road-posts 2.8s linear infinite;
+  /*each layer is 480 wide, slower layers look further away*/
+  .scroll-near {
+    animation: scroll-480 4s linear infinite;
   }
+  .scroll-mid {
+    animation: scroll-480 9.6s linear infinite;
+  }
+  .scroll-far {
+    animation: scroll-480 26s linear infinite;
+  }
+  /*small bounce of the body on its springs, the wheels stay on the road*/
   .car-bob {
-    animation: car-bob 0.9s ease-in-out infinite;
+    animation: car-bob 0.7s ease-in-out infinite;
   }
   .gauge-needle {
     transform-origin: 60px 64px;
@@ -88,15 +99,12 @@
 }
 @keyframes road-dash {
   to {
-    stroke-dashoffset: 40;
+    stroke-dashoffset: 60;
   }
 }
-@keyframes road-posts {
-  from {
-    transform: translateX(0);
-  }
+@keyframes scroll-480 {
   to {
-    transform: translateX(-140px);
+    transform: translateX(-480px);
   }
 }
 @keyframes car-bob {
@@ -104,8 +112,11 @@
   100% {
     transform: translateY(0);
   }
-  50% {
-    transform: translateY(-1.5px);
+  40% {
+    transform: translateY(-1.2px);
+  }
+  70% {
+    transform: translateY(0.4px);
   }
 }
 @keyframes needle-sweep {
@@ -117,9 +128,12 @@
 @media (prefers-reduced-motion: reduce) {
   .wheel-spin,
   .road-dash,
-  .road-posts,
+  .scroll-near,
+  .scroll-mid,
+  .scroll-far,
   .car-bob,
   .reveal-in .gauge-needle {
     animation: none;
   }
 }
+

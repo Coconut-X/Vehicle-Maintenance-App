@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import StatusBadge from './StatusBadge'
 import { formatKm } from '../format'
+import CarSide from './CarSide'
 
 //three jobs the demo car is watching, due at these odometer readings
 const jobs = [
@@ -23,44 +24,35 @@ const prefersReducedMotion = () => {
   return typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
-//side view of a hatchback drawn with plain svg shapes
-function Car() {
+//the scene repeats every 480 units, each layer has two copies so it can scroll forever
+//far blocks of a skyline, as [x, width, height]
+const skyline = [
+  [0, 46, 34], [50, 30, 52], [84, 54, 26], [142, 26, 44], [172, 60, 30], [236, 34, 58],
+  [274, 48, 22], [326, 28, 40], [358, 56, 30], [418, 30, 48], [452, 28, 24],
+]
+//trees and lamps in the middle distance
+const middle = [
+  { x: 30, type: 'tree' }, { x: 150, type: 'lamp' }, { x: 260, type: 'tree' }, { x: 380, type: 'lamp' },
+]
+//roadside marker posts close to the camera
+const posts = [40, 200, 360]
+
+function Tree({ x }) {
   return (
-    <g className="car-body">
-      {/*shadow*/}
-      <ellipse cx="200" cy="168" rx="150" ry="7" fill="currentColor" opacity="0.12" />
-      {/*body*/}
-      <path
-        d="M58 140 L66 112 Q72 100 88 98 L138 94 L176 62 Q186 54 200 54 L268 54 Q284 54 294 66 L322 98 L348 104 Q362 108 364 122 L366 140 Q366 150 356 150 L68 150 Q56 150 58 140 Z"
-        className="fill-ink"
-      />
-      {/*windows*/}
-      <path d="M150 94 L182 66 Q188 62 196 62 L226 62 L226 94 Z" className="fill-paper" opacity="0.9" />
-      <path d="M236 62 L266 62 Q276 62 282 70 L304 94 L236 94 Z" className="fill-paper" opacity="0.9" />
-      {/*door line and handle*/}
-      <line x1="231" y1="60" x2="231" y2="146" className="stroke-paper" strokeWidth="2" opacity="0.35" />
-      <rect x="244" y="104" width="16" height="3" className="fill-paper" opacity="0.6" />
-      {/*lights*/}
-      <rect x="350" y="112" width="12" height="8" className="fill-accent" />
-      <rect x="60" y="116" width="10" height="8" fill="#c2352b" />
-      {/*wheels*/}
-      <Wheel cx={118} />
-      <Wheel cx={302} />
+    <g>
+      <rect x={x + 7} y="146" width="4" height="26" className="fill-muted" opacity="0.5" />
+      <circle cx={x + 9} cy="140" r="15" fill="#d9d9d1" />
+      <circle cx={x + 18} cy="148" r="10" fill="#d9d9d1" />
     </g>
   )
 }
 
-function Wheel({ cx }) {
+function Lamp({ x }) {
   return (
-    <g>
-      <circle cx={cx} cy="150" r="24" className="fill-ink" />
-      <circle cx={cx} cy="150" r="24" fill="none" className="stroke-paper" strokeWidth="2" opacity="0.25" />
-      <g className="wheel-spin">
-        <circle cx={cx} cy="150" r="13" className="fill-paper" />
-        <line x1={cx - 12} y1="150" x2={cx + 12} y2="150" className="stroke-ink" strokeWidth="3" />
-        <line x1={cx} y1="138" x2={cx} y2="162" className="stroke-ink" strokeWidth="3" />
-        <circle cx={cx} cy="150" r="4" className="fill-accent" />
-      </g>
+    <g className="fill-muted" opacity="0.55">
+      <rect x={x} y="118" width="3" height="54" />
+      <rect x={x} y="118" width="18" height="3" />
+      <rect x={x + 14} y="121" width="7" height="3" className="fill-accent" />
     </g>
   )
 }
@@ -91,26 +83,53 @@ function CarScene() {
         </div>
       </div>
 
-      {/*the road scene*/}
+      {/*the road scene, background layers move slower than the road so it feels deep*/}
       <div className="relative overflow-hidden border-b border-line bg-paper">
-        <svg viewBox="0 0 420 210" className="block w-full text-ink" role="img" aria-label="A car driving along a road">
-          {/*far hills*/}
-          <path d="M0 120 Q60 96 120 112 T240 104 T420 110 L420 186 L0 186 Z" className="fill-line" opacity="0.6" />
-          {/*road*/}
-          <rect x="0" y="174" width="420" height="36" className="fill-ink" />
-          <line x1="0" y1="192" x2="420" y2="192" className="road-dash stroke-paper" strokeWidth="3" strokeDasharray="22 18" />
-          {/*km posts passing by*/}
-          <g className="road-posts">
-            {[0, 1, 2, 3].map((i) => (
-              <g key={i} transform={'translate(' + (i * 140 + 40) + ' 0)'}>
-                <rect x="0" y="146" width="3" height="28" className="fill-muted" />
-                <rect x="-8" y="140" width="19" height="10" className="fill-accent" />
+        <svg viewBox="0 60 480 150" className="block w-full text-ink" role="img" aria-label="A car driving along a road past trees and street lamps">
+          <g className="scroll-far">
+            {[0, 480].map((offset) => (
+              <g key={offset} transform={'translate(' + offset + ' 0)'}>
+                {skyline.map(([x, w, h]) => (
+                  <rect key={x} x={x} y={172 - h} width={w} height={h} className="fill-line" />
+                ))}
               </g>
             ))}
           </g>
-          <g className="car-bob">
-            <Car />
+
+          <g className="scroll-mid">
+            {[0, 480].map((offset) => (
+              <g key={offset} transform={'translate(' + offset + ' 0)'}>
+                {middle.map((m) => (m.type === 'tree' ? <Tree key={m.x} x={m.x} /> : <Lamp key={m.x} x={m.x} />))}
+              </g>
+            ))}
           </g>
+
+          {/*verge and road*/}
+          <rect x="0" y="172" width="480" height="8" fill="#e9e9e3" />
+          <rect x="0" y="178" width="480" height="32" fill="#2b2b28" />
+          <line x1="0" y1="180.5" x2="480" y2="180.5" className="stroke-paper" strokeWidth="1.5" opacity="0.35" />
+          <line x1="0" y1="196" x2="480" y2="196" className="road-dash stroke-paper" strokeWidth="3" strokeDasharray="34 26" opacity="0.85" />
+
+          {/*marker posts on the far verge, they move at road speed*/}
+          <g className="scroll-near">
+            {[0, 480].map((offset) => (
+              <g key={offset} transform={'translate(' + offset + ' 0)'}>
+                {posts.map((x) => (
+                  <g key={x}>
+                    <rect x={x} y="150" width="5" height="28" className="fill-paper" stroke="#c9c9c2" strokeWidth="1" />
+                    <rect x={x} y="155" width="5" height="5" className="fill-accent" />
+                  </g>
+                ))}
+              </g>
+            ))}
+          </g>
+          {/*shadow under the car*/}
+          <ellipse cx="240" cy="181" rx="160" ry="3.5" fill="#000" opacity="0.35" />
+          {/*scaled down so the background shows, 180 x 0.82 + 32.4 keeps the tyres on the road*/}
+          <g transform="translate(38 32.4) scale(0.82)">
+            <CarSide powertrain="petrol" spin bounce />
+          </g>
+
         </svg>
       </div>
 
