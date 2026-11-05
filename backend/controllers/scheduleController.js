@@ -18,6 +18,17 @@ const updateEntry = async (req, res) => {
     return res.status(404).json({ message: "schedule entry not found" });
   }
 
+  //an item that doesnt fit the car is hidden, so nothing about it can be changed
+  //otherwise an ev would get oil change reminders
+  const vehicle = await Vehicle.findById(entry.vehicle);
+  const item = await CatalogueItem.findById(entry.item);
+  if (vehicle && item && !item.appliesTo(vehicle.powertrain)) {
+    return res.status(422).json({
+      message: "validation failed",
+      errors: { item: "this item is not used on a " + vehicle.powertrain + " car" },
+    });
+  }
+
   const errors = {};
 
   if (body.intervalKm !== undefined) {
@@ -43,17 +54,8 @@ const updateEntry = async (req, res) => {
   if (body.enabled !== undefined) {
     if (typeof body.enabled !== "boolean") {
       errors.enabled = "enabled must be true or false";
-    } else if (body.enabled) {
-      //an item that doesnt fit the car stays off, otherwise an ev would get oil change reminders
-      const vehicle = await Vehicle.findById(entry.vehicle);
-      const item = await CatalogueItem.findById(entry.item);
-      if (vehicle && item && !item.appliesTo(vehicle.powertrain)) {
-        errors.enabled = "this item is not used on a " + vehicle.powertrain + " car";
-      } else {
-        entry.enabled = true;
-      }
     } else {
-      entry.enabled = false;
+      entry.enabled = body.enabled;
     }
   }
 

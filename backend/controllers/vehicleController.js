@@ -108,16 +108,20 @@ const newEntry = (vehicle, item) => ({
 });
 
 //after the powertrain changes turn items on or off to match, and add items the car never had
-//this also resets items the user turned off by hand, the ui warns about it
-const syncPowertrain = async (vehicle) => {
+//only items whose fit changed are touched, so wipers turned off by hand stay off
+const syncPowertrain = async (vehicle, oldPowertrain) => {
   const items = await CatalogueItem.find();
   const entries = await ScheduleEntry.find({ vehicle: vehicle._id, owner: vehicle.owner });
 
   for (const item of items) {
     const entry = entries.find((e) => e.item.toString() === item._id.toString());
     if (entry) {
-      entry.enabled = item.appliesTo(vehicle.powertrain);
-      await entry.save();
+      const fitsBefore = item.appliesTo(oldPowertrain);
+      const fitsNow = item.appliesTo(vehicle.powertrain);
+      if (fitsBefore !== fitsNow) {
+        entry.enabled = fitsNow;
+        await entry.save();
+      }
     } else {
       await ScheduleEntry.create(newEntry(vehicle, item));
     }
@@ -275,12 +279,13 @@ const updateVehicle = async (req, res) => {
     data.usageDerived = false;
   }
 
-  const powertrainChanged = data.powertrain !== undefined && data.powertrain !== vehicle.powertrain;
+  const oldPowertrain = vehicle.powertrain;
+  const powertrainChanged = data.powertrain !== undefined && data.powertrain !== oldPowertrain;
 
   Object.assign(vehicle, data);
   await vehicle.save();
 
-  if (powertrainChanged) await syncPowertrain(vehicle);
+  if (powertrainChanged) await syncPowertrain(vehicle, oldPowertrain);
 
   const warning = await savePhoto(vehicle, req.file);
   res.json({ vehicle, warning });

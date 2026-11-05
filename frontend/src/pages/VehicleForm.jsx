@@ -219,7 +219,7 @@ function VehicleForm() {
           </div>
           <p className="mt-1 text-xs text-muted">
             {isEdit && form.powertrain !== savedPowertrain
-              ? 'Saving turns schedule items on or off to match the new powertrain. Items you turned off by hand come back on.'
+              ? 'Saving hides items the new powertrain doesnt use and brings back ones it does. Your history and settings are kept.'
               : form.powertrain === 'electric'
                 ? 'No engine oil, filters, spark plugs or timing belt. Adds a high voltage battery check.'
                 : form.powertrain === 'petrol'
