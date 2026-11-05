@@ -3,6 +3,8 @@ const cron = require("node-cron");
 const User = require("../models/User");
 const Vehicle = require("../models/Vehicle");
 const ScheduleEntry = require("../models/ScheduleEntry");
+//needed for populate when this runs on its own with npm run reminders
+require("../models/CatalogueItem");
 const ReminderLog = require("../models/ReminderLog");
 const { calcDue } = require("../utils/dueDate");
 const { getStatus } = require("../utils/status");
