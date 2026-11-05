@@ -61,3 +61,37 @@ export const validateVehicle = (form, photo) => {
 
   return errors
 }
+
+const receiptTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
+
+export const validateService = (form, receipt) => {
+  const errors = {}
+
+  if (!form.item) errors.item = 'Choose what was done.'
+
+  if (!form.serviceDate || isNaN(new Date(form.serviceDate).getTime())) {
+    errors.serviceDate = 'Enter the date of the service.'
+  } else if (new Date(form.serviceDate) > new Date()) {
+    errors.serviceDate = 'The date cannot be in the future.'
+  }
+
+  const km = Number(form.odometerKm)
+  if (form.odometerKm === '' || !Number.isInteger(km) || km < 0 || km > 2000000) {
+    errors.odometerKm = 'Enter a whole number from 0 to 2,000,000.'
+  }
+
+  if (form.cost !== '') {
+    const cost = Number(form.cost)
+    if (isNaN(cost) || cost < 0 || cost > 10000000) errors.cost = 'Enter an amount from 0 to 10,000,000.'
+  }
+
+  if (form.workshop.length > 80) errors.workshop = 'Workshop can be at most 80 characters.'
+  if (form.notes.length > 1000) errors.notes = 'Notes can be at most 1000 characters.'
+
+  if (receipt) {
+    if (!receiptTypes.includes(receipt.type)) errors.receipt = 'Receipt must be a jpg, png, webp or pdf file.'
+    else if (receipt.size > 5 * 1024 * 1024) errors.receipt = 'Receipt must be 5MB or less.'
+  }
+
+  return errors
+}
