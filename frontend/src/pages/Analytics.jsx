@@ -6,6 +6,7 @@ import { formatKm, formatMoney, vehicleName } from '../format'
 import ErrorNote from '../components/ErrorNote'
 import Loading from '../components/Loading'
 import Select from '../components/Select'
+import Telltale from '../components/Telltale'
 import { btnPrimary, labelClass } from '../components/ui'
 
 //"2026-03" to "Mar"
@@ -14,12 +15,25 @@ const monthLabel = (m) => {
   return d.toLocaleDateString('en-GB', { month: 'short', timeZone: 'UTC' })
 }
 
+//one readout of the trip computer, like the screen between the dials of a car
 function Stat({ label, value, note }) {
   return (
-    <div className="bg-card p-4 md:p-5">
-      <p className={labelClass}>{label}</p>
-      <p className="mt-1 break-words font-mono text-2xl md:text-3xl">{value}</p>
-      {note && <p className="mt-1 text-xs text-muted">{note}</p>}
+    <div className="bg-ink p-4 md:p-5">
+      <p className="font-mono text-[11px] uppercase tracking-widest text-lamp-off">{label}</p>
+      <p className="mt-1 break-words font-mono text-2xl text-white md:text-3xl">{value}</p>
+      {note && <p className="mt-1 font-mono text-[11px] text-white/50">{note}</p>}
+    </div>
+  )
+}
+
+//cost bar made of blocks like a fuel gauge, full means the most expensive category
+function CostGauge({ part }) {
+  const lit = Math.max(1, Math.round(part * 20))
+  return (
+    <div className="flex gap-[2px]" aria-hidden="true">
+      {Array.from({ length: 20 }, (_, i) => (
+        <span key={i} className={'h-2 flex-1 ' + (i < lit ? 'bg-accent' : 'bg-line')} />
+      ))}
     </div>
   )
 }
@@ -120,18 +134,24 @@ function Analytics() {
 
       {!loading && data && !empty && (
         <>
-          <div className="mt-8 grid grid-cols-1 gap-px border border-line bg-line sm:grid-cols-3">
-            <Stat label="total spent" value={formatMoney(data.totalCost)} note={data.serviceCount + ' services logged'} />
-            <Stat
-              label="cost per km"
-              value={data.costPerKm === null ? '-' : formatMoney(data.costPerKm)}
-              note={data.costPerKm === null ? 'needs two services at different km' : 'over ' + formatKm(data.distanceKm)}
-            />
-            <Stat
-              label="top category"
-              value={data.byCategory.length ? data.byCategory[0].category : '-'}
-              note={data.byCategory.length ? formatMoney(data.byCategory[0].cost) : ''}
-            />
+          <div className="mt-8 border-2 border-ink bg-ink">
+            <p className="flex items-center gap-2 border-b border-white/10 px-4 py-2 font-mono text-[10px] uppercase tracking-widest text-accent">
+              <span className="h-1.5 w-1.5 bg-accent" aria-hidden="true" />
+              trip computer
+            </p>
+            <div className="grid grid-cols-1 gap-px bg-white/10 sm:grid-cols-3">
+              <Stat label="total spent" value={formatMoney(data.totalCost)} note={data.serviceCount + ' services logged'} />
+              <Stat
+                label="cost per km"
+                value={data.costPerKm === null ? '-' : formatMoney(data.costPerKm)}
+                note={data.costPerKm === null ? 'needs two services at different km' : 'over ' + formatKm(data.distanceKm)}
+              />
+              <Stat
+                label="top category"
+                value={data.byCategory.length ? data.byCategory[0].category : '-'}
+                note={data.byCategory.length ? formatMoney(data.byCategory[0].cost) : ''}
+              />
+            </div>
           </div>
 
           <h2 className="mt-12 font-semibold tracking-tight">Last 12 months</h2>
@@ -166,8 +186,11 @@ function Analytics() {
           <ul className="mt-3 border border-line bg-card">
             {data.byCategory.map((c) => (
               <li key={c.category} className="border-b border-line px-4 py-3 last:border-b-0">
-                <div className="flex items-baseline justify-between gap-4">
-                  <p className="text-sm font-medium">{c.category}</p>
+                <div className="flex items-center justify-between gap-4">
+                  <p className="flex items-center gap-3 text-sm font-medium">
+                    <Telltale category={c.category} status="due_soon" size="sm" />
+                    {c.category}
+                  </p>
                   <p className="font-mono text-sm">
                     {formatMoney(c.cost)}
                     <span className="ml-2 text-xs text-muted">
@@ -175,8 +198,8 @@ function Analytics() {
                     </span>
                   </p>
                 </div>
-                <div className="mt-2 h-1 bg-paper">
-                  <div className="h-1 bg-ink" style={{ width: maxCategory ? (c.cost / maxCategory) * 100 + '%' : '0%' }} />
+                <div className="mt-3">
+                  <CostGauge part={maxCategory ? c.cost / maxCategory : 0} />
                 </div>
               </li>
             ))}
