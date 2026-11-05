@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import api, { readError } from '../api'
-import { formatKm, powertrainLabel, vehicleName } from '../format'
+import { powertrainLabel, vehicleName } from '../format'
+import Odometer from '../components/Odometer'
 import Field from '../components/Field'
 import Select from '../components/Select'
-import StatusBadge from '../components/StatusBadge'
 import Plate from '../components/Plate'
 import Pagination from '../components/Pagination'
 import CarArt from '../components/CarArt'
@@ -25,40 +25,78 @@ const sortOptions = [
   { value: 'year', label: 'Year' },
 ]
 
-function VehicleCard({ v }) {
+const lamp = {
+  overdue: 'bg-lamp-red',
+  due_soon: 'bg-lamp-amber',
+  up_to_date: 'bg-lamp-green',
+}
+
+//painted parking lines, yellow like a real garage floor
+const bayLines = 'border-x-[5px] border-[#e2b33c]'
+//concrete floor with light coming from the top
+const floor = 'bg-[radial-gradient(ellipse_at_top,#f4f3ef,#e3e2dc)]'
+
+//every car is parked in its own bay with a number painted on the floor
+function VehicleCard({ v, bay }) {
   const unfinished = v.counts.overdue + v.counts.due_soon
+  const due = v.summary === 'overdue' || v.summary === 'due_soon'
 
   return (
-    <Link to={'/vehicles/' + v._id} className="group block border border-line bg-card transition-colors hover:border-ink">
-      <div className="aspect-[16/9] border-b border-line bg-paper">
-        {v.photoUrl ? (
-          <img src={v.photoUrl} alt={vehicleName(v)} loading="lazy" className="h-full w-full object-cover" />
-        ) : (
-          <CarArt powertrain={v.powertrain} />
-        )}
+    <Link to={'/vehicles/' + v._id} className="group block">
+      <div className={'relative aspect-[16/10] overflow-hidden ' + bayLines + ' ' + floor}>
+        <span className="absolute left-3 top-2 font-display text-4xl font-bold text-ink/10 [font-stretch:125%]">
+          {String(bay).padStart(2, '0')}
+        </span>
+        <div className="absolute inset-x-0 top-[12%] bottom-[14%] transition-transform duration-700 ease-out group-hover:translate-x-3">
+          {v.photoUrl ? (
+            <img src={v.photoUrl} alt={vehicleName(v)} loading="lazy" className="h-full w-full object-cover" />
+          ) : (
+            <CarArt powertrain={v.powertrain} className="!bg-transparent" />
+          )}
+        </div>
+        {/*wheel stop at the back of the bay*/}
+        <span className="absolute bottom-3 left-1/2 h-2 w-1/3 -translate-x-1/2 bg-[repeating-linear-gradient(90deg,#111110_0_12px,#e2b33c_12px_24px)]" />
       </div>
-      <div className="p-4">
-        <div className="flex items-start justify-between gap-3">
+
+      <div className="bg-ink px-4 py-3 text-white transition-colors group-hover:bg-[#1d1d1b]">
+        <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="truncate font-medium">{vehicleName(v)}</p>
-            <div className="mt-1.5 flex items-center gap-2">
-              <Plate number={v.registrationNo} size="sm" />
-              <span className="font-mono text-xs text-muted">
-                {v.year} / {powertrainLabel(v.powertrain)}
-              </span>
-            </div>
+            <p className="truncate font-medium group-hover:text-accent">{vehicleName(v)}</p>
+            <p className="font-mono text-[11px] uppercase tracking-widest text-white/50">
+              {v.year} / {powertrainLabel(v.powertrain)}
+            </p>
           </div>
-          <StatusBadge status={v.summary} />
+          <Plate number={v.registrationNo} size="sm" />
         </div>
-        <div className="mt-4 flex items-end justify-between border-t border-line pt-3">
-          <div>
-            <p className={labelClass}>{v.projection.projectedKm === null ? 'last reading' : 'estimated now'}</p>
-            <p className="font-mono text-sm">{formatKm(v.projection.projectedKm ?? v.odometerKm)}</p>
-          </div>
-          <p className="font-mono text-xs text-muted">
-            {unfinished > 0 ? unfinished + ' need attention' : 'nothing due'}
-          </p>
+        <div className="mt-3 flex items-center justify-between gap-3 border-t border-white/10 pt-3">
+          <span className="text-sm">
+            <Odometer km={v.projection.projectedKm ?? v.odometerKm} />
+          </span>
+          <span className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-white/70">
+            <span className={'h-2 w-2 ' + (lamp[v.summary] || 'bg-lamp-off') + (due ? ' lamp-blink' : '')} />
+            {unfinished > 0 ? unfinished + ' due' : v.summary === 'unknown' ? 'needs data' : 'all ok'}
+          </span>
         </div>
+      </div>
+    </Link>
+  )
+}
+
+//an empty bay at the end of the row, parking a new car is adding one
+function EmptyBay({ bay }) {
+  return (
+    <Link to="/vehicles/new" className="group block">
+      <div className={'relative flex aspect-[16/10] flex-col items-center justify-center ' + bayLines + ' ' + floor}>
+        <span className="absolute left-3 top-2 font-display text-4xl font-bold text-ink/10 [font-stretch:125%]">
+          {String(bay).padStart(2, '0')}
+        </span>
+        <span className="flex h-12 w-12 items-center justify-center border-2 border-dashed border-ink/30 font-mono text-2xl text-ink/40 transition-colors group-hover:border-accent group-hover:text-accent">
+          +
+        </span>
+        <span className="mt-3 font-mono text-[11px] uppercase tracking-widest text-muted group-hover:text-ink">bay free / park a car</span>
+      </div>
+      <div className="border-x border-b border-dashed border-line px-4 py-3">
+        <p className="font-mono text-[11px] uppercase tracking-widest text-muted">add vehicle</p>
       </div>
     </Link>
   )
@@ -183,9 +221,10 @@ function Garage() {
 
       {data && data.total > 0 && (
         <div className={'mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 ' + (loading ? 'opacity-60' : '')}>
-          {data.vehicles.map((v) => (
-            <VehicleCard key={v._id} v={v} />
+          {data.vehicles.map((v, i) => (
+            <VehicleCard key={v._id} v={v} bay={(data.page - 1) * 9 + i + 1} />
           ))}
+          {!filtering && data.page === data.pages && <EmptyBay bay={data.total + 1} />}
         </div>
       )}
 
