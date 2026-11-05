@@ -6,6 +6,7 @@ import { daysText, formatDate, kmLeftText, vehicleName } from '../format'
 import ErrorNote from '../components/ErrorNote'
 import Loading from '../components/Loading'
 import StatusBadge from '../components/StatusBadge'
+import Telltale from '../components/Telltale'
 import { btnPrimary, labelClass } from '../components/ui'
 
 function Total({ label, value, tone }) {
@@ -82,11 +83,14 @@ function Dashboard() {
             <ul className="mt-3 border border-line bg-card">
               {data.urgent.map((u) => (
                 <li key={u.entryId} className="flex flex-col gap-3 border-b border-line px-4 py-3 last:border-b-0 md:flex-row md:items-center">
-                  <div className="md:w-1/3">
-                    <p className="text-sm font-medium">{u.item.name}</p>
-                    <Link to={'/vehicles/' + u.vehicle._id} className="font-mono text-xs text-muted underline-offset-4 hover:text-ink hover:underline">
-                      {vehicleName(u.vehicle)} / {u.vehicle.registrationNo}
-                    </Link>
+                  <div className="flex items-center gap-3 md:w-1/3">
+                    <Telltale name={u.item.name} category={u.item.category} status={u.status} />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium">{u.item.name}</p>
+                      <Link to={'/vehicles/' + u.vehicle._id} className="font-mono text-xs text-muted underline-offset-4 hover:text-ink hover:underline">
+                        {vehicleName(u.vehicle)} / {u.vehicle.registrationNo}
+                      </Link>
+                    </div>
                   </div>
                   <div className="md:flex-1">
                     <p className="font-mono text-sm">{formatDate(u.due.dueDate)}</p>

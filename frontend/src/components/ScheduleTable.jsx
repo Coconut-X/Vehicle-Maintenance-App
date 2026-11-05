@@ -4,6 +4,7 @@ import api, { readError } from '../api'
 import { daysText, formatDate, kmLeftText, formatKm } from '../format'
 import Field from './Field'
 import StatusBadge from './StatusBadge'
+import Telltale from './Telltale'
 import { btnOutline, btnPrimary } from './ui'
 
 //most urgent first, items that are turned off go last
@@ -229,12 +230,15 @@ function ScheduleTable({ entries, vehicle, onChanged }) {
         {sortEntries(entries).map((entry) => (
           <li key={entry._id} className="border-b border-line last:border-b-0">
             <div className="flex flex-col gap-3 px-4 py-3 md:flex-row md:items-center">
-              <div className="md:w-1/3">
-                <p className={'text-sm font-medium ' + (entry.enabled ? '' : 'text-muted')}>{entry.item.name}</p>
-                <p className="font-mono text-xs text-muted">
-                  {entry.item.category}
-                  {intervalText(entry) ? ' / every ' + intervalText(entry) : ''}
-                </p>
+              <div className="flex items-center gap-3 md:w-1/3">
+                <Telltale name={entry.item.name} category={entry.item.category} status={entry.status} />
+                <div className="min-w-0">
+                  <p className={'text-sm font-medium ' + (entry.enabled ? '' : 'text-muted')}>{entry.item.name}</p>
+                  <p className="font-mono text-xs text-muted">
+                    {entry.item.category}
+                    {intervalText(entry) ? ' / every ' + intervalText(entry) : ''}
+                  </p>
+                </div>
               </div>
               <div className="md:flex-1">
                 <DueInfo entry={entry} vehicle={vehicle} />

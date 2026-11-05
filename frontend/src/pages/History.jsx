@@ -8,6 +8,7 @@ import Field from '../components/Field'
 import Loading from '../components/Loading'
 import Pagination from '../components/Pagination'
 import Select from '../components/Select'
+import Telltale from '../components/Telltale'
 import { btnOutline, btnPrimary, labelClass } from '../components/ui'
 
 const categoryOptions = [
@@ -221,14 +222,17 @@ function History() {
                   <p className="font-mono text-sm">{formatDate(r.serviceDate)}</p>
                   <p className="font-mono text-xs text-muted">{formatKm(r.odometerKm)}</p>
                 </div>
-                <div className="min-w-0 md:flex-1">
-                  <p className="text-sm font-medium">{r.item.name}</p>
-                  <p className="font-mono text-xs text-muted">
-                    {r.item.category}
-                    {r.vehicle ? ' / ' + vehicleName(r.vehicle) : ''}
-                    {r.workshop ? ' / ' + r.workshop : ''}
-                  </p>
-                  {r.notes && <p className="mt-1 text-xs text-muted">{r.notes}</p>}
+                <div className="flex min-w-0 items-start gap-3 md:flex-1">
+                  <Telltale name={r.item.name} category={r.item.category} size="sm" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">{r.item.name}</p>
+                    <p className="font-mono text-xs text-muted">
+                      {r.item.category}
+                      {r.vehicle ? ' / ' + vehicleName(r.vehicle) : ''}
+                      {r.workshop ? ' / ' + r.workshop : ''}
+                    </p>
+                    {r.notes && <p className="mt-1 text-xs text-muted">{r.notes}</p>}
+                  </div>
                 </div>
                 <div className="flex items-center justify-between gap-5 md:justify-end">
                   <p className="font-mono text-sm">{r.cost !== undefined && r.cost !== null ? formatMoney(r.cost) : '-'}</p>
