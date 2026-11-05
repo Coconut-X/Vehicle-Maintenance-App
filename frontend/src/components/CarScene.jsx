@@ -3,7 +3,6 @@ import StatusBadge from './StatusBadge'
 import SegmentBar from './SegmentBar'
 import Odometer from './Odometer'
 import { formatKm } from '../format'
-import CarSide from './CarSide'
 
 //three jobs the demo car is watching, due at these odometer readings
 const jobs = [
@@ -65,6 +64,16 @@ function Lamp({ x }) {
     </g>
   )
 }
+
+//where the car photo goes in the scene
+const CAR = { x: 75, y: 76.5, scale: 330 / 1313 }
+//wheel centres in the photo, the tyre radius there is 95 pixels
+const wheels = [
+  { name: 'rear', cx: 269 },
+  { name: 'front', cx: 1064 },
+]
+//time for one turn so the tyres match the road speed of 120 units a second
+const WHEEL_TURN = ((2 * Math.PI * 95 * CAR.scale) / 120).toFixed(2)
 
 //hero animation, a night drive, the odometer ticks and the jobs fall due one by one
 function CarScene() {
@@ -137,11 +146,28 @@ function CarScene() {
           </g>
 
           {/*headlight beam on the road ahead*/}
-          <path d="M 404 132 L 480 150 L 480 186 L 404 140 Z" fill="#fff6d8" opacity="0.10" />
-          {/*scaled down so the background shows, 180 x 0.82 + 32.4 keeps the tyres on the road*/}
-          <g transform="translate(38 32.4) scale(0.82)">
-            <CarSide powertrain="petrol" spin bounce night />
+          <path d="M 398 132 L 480 148 L 480 186 L 398 140 Z" fill="#fff6d8" opacity="0.10" />
+          {/*shadow under the car*/}
+          <ellipse cx="242" cy="181" rx="168" ry="3.5" fill="#000" opacity="0.6" />
+
+          {/*the car is a photo made with figma, keyed out so it sits on the road*/}
+          {/*photo is 1313 x 414, scaled to 330 wide, its tyres touch y 412 which lands on the road at y 180*/}
+          <g className="car-bob">
+            <image href="/cars/night-sedan.webp" x={CAR.x} y={CAR.y} width={1313 * CAR.scale} height={414 * CAR.scale} />
           </g>
+          {/*the real wheels are cut out of the photo and laid on top so they can turn*/}
+          {wheels.map((wh) => (
+            <image
+              key={wh.name}
+              href={'/cars/night-wheel-' + wh.name + '.webp'}
+              x={CAR.x + (wh.cx - 96) * CAR.scale}
+              y={CAR.y + (317 - 96) * CAR.scale}
+              width={192 * CAR.scale}
+              height={192 * CAR.scale}
+              className="wheel-spin"
+              style={{ animationDuration: WHEEL_TURN + 's' }}
+            />
+          ))}
         </svg>
       </div>
 
