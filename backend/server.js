@@ -8,6 +8,7 @@ const catalogueRoutes = require("./routes/catalogueRoutes");
 const scheduleRoutes = require("./routes/scheduleRoutes");
 const serviceRoutes = require("./routes/serviceRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
+const analyticsRoutes = require("./routes/analyticsRoutes");
 const { notFound, errorHandler } = require("./middleware/errorMiddleware");
 const { startReminderJob } = require("./jobs/reminderJob");
 
@@ -27,6 +28,7 @@ app.use("/api/catalogue", catalogueRoutes);
 app.use("/api/schedule", scheduleRoutes);
 app.use("/api/services", serviceRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/analytics", analyticsRoutes);
 
 //these two must stay after all routes
 app.use(notFound);
