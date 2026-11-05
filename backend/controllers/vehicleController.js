@@ -2,6 +2,7 @@ const Vehicle = require("../models/Vehicle");
 const CatalogueItem = require("../models/CatalogueItem");
 const ScheduleEntry = require("../models/ScheduleEntry");
 const ServiceRecord = require("../models/ServiceRecord");
+const ReminderLog = require("../models/ReminderLog");
 const { uploadImage, deleteImage } = require("../config/cloudinary");
 const { projectionInfo } = require("../utils/projection");
 const { calcDue } = require("../utils/dueDate");
@@ -262,6 +263,7 @@ const deleteVehicle = async (req, res) => {
     await deleteImage(record.receiptId);
   }
   await ServiceRecord.deleteMany({ vehicle: vehicle._id, owner: req.userId });
+  await ReminderLog.deleteMany({ vehicle: vehicle._id, owner: req.userId });
 
   await deleteImage(vehicle.photoId);
 
