@@ -9,6 +9,7 @@ import Loading from '../components/Loading'
 import Pagination from '../components/Pagination'
 import Select from '../components/Select'
 import Telltale from '../components/Telltale'
+import Plate from '../components/Plate'
 import { btnOutline, btnPrimary, labelClass } from '../components/ui'
 
 const categoryOptions = [
@@ -31,8 +32,40 @@ const sortParams = {
   cost_low: { sort: 'cost', order: 'asc' },
 }
 
+//cream paper with ruled lines like the service book that comes in the glovebox
+const pageLines = 'bg-[#f7f2e4] bg-[repeating-linear-gradient(transparent_0_27px,#ebe2c9_27px_28px)]'
+
+//a box on the service book page, label on top and the value written on a dotted line
+function BookField({ label, value }) {
+  return (
+    <div>
+      <dt className="font-mono text-[10px] uppercase tracking-widest text-[#8a7d5c]">{label}</dt>
+      <dd className="mt-0.5 border-b border-dotted border-[#8a7d5c] pb-0.5 font-mono text-xs whitespace-nowrap sm:text-sm">{value}</dd>
+    </div>
+  )
+}
+
+//workshop rubber stamp, every one is tilted a little different so they dont look copy pasted
+function Stamp({ record }) {
+  const tilt = (parseInt(record._id.slice(-2), 16) % 11) - 7
+  const date = new Date(record.serviceDate)
+  const short = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()
+
+  return (
+    <div
+      className="w-36 border-[3px] border-double border-[#2b4c9b] px-2 py-1.5 text-center font-mono uppercase text-[#2b4c9b] opacity-85 mix-blend-multiply"
+      style={{ transform: 'rotate(' + tilt + 'deg)' }}
+    >
+      <p className="text-[9px] tracking-[0.3em]">serviced</p>
+      <p className="truncate border-y border-[#2b4c9b] py-0.5 text-xs font-bold">{record.workshop || 'self service'}</p>
+      <p className="text-[9px] tracking-widest">{short}</p>
+    </div>
+  )
+}
+
+//receipt clipped to the page, a small paper clip sits on top
 function Receipt({ url }) {
-  if (!url) return <span className="flex h-12 w-12 items-center justify-center font-mono text-xs text-muted">-</span>
+  if (!url) return null
 
   const isPdf = url.toLowerCase().endsWith('.pdf')
   return (
@@ -41,8 +74,9 @@ function Receipt({ url }) {
       target="_blank"
       rel="noreferrer"
       aria-label="Open receipt"
-      className="block h-12 w-12 shrink-0 border border-line bg-paper transition-colors hover:border-ink"
+      className="relative block h-16 w-14 shrink-0 rotate-3 border border-line bg-white shadow-[2px_2px_0_rgba(0,0,0,0.12)] transition-transform hover:rotate-0"
     >
+      <span className="absolute -top-2 left-3 h-5 w-2 border-2 border-[#9a9a94]" aria-hidden="true" />
       {isPdf ? (
         <span className="flex h-full items-center justify-center font-mono text-[10px] uppercase">pdf</span>
       ) : (
@@ -162,7 +196,7 @@ function History() {
   return (
     <div className="mx-auto max-w-6xl px-6 py-12">
       <p className={labelClass}>history</p>
-      <h1 className="mt-3 text-3xl font-semibold tracking-tight">Service history</h1>
+      <h1 className="mt-3 text-3xl font-semibold tracking-tight">Service book</h1>
       <p className="mt-2 max-w-xl text-sm text-muted">
         Every job you have logged, with receipts. To add one, open a vehicle and use Log service on a schedule item.
       </p>
@@ -214,42 +248,62 @@ function History() {
       )}
 
       {data && data.total > 0 && (
-        <ul className={'mt-8 border border-line bg-card ' + (loading ? 'opacity-60' : '')}>
+        <ol className={'relative mt-10 space-y-6 before:absolute before:top-2 before:bottom-2 before:left-[13px] before:w-px before:bg-ink/25 ' + (loading ? 'opacity-60' : '')}>
           {data.records.map((r) => (
-            <li key={r._id} className="border-b border-line last:border-b-0">
-              <div className="flex flex-col gap-3 px-4 py-3 md:flex-row md:items-center">
-                <div className="md:w-28 md:shrink-0">
-                  <p className="font-mono text-sm">{formatDate(r.serviceDate)}</p>
-                  <p className="font-mono text-xs text-muted">{formatKm(r.odometerKm)}</p>
-                </div>
-                <div className="flex min-w-0 items-start gap-3 md:flex-1">
-                  <Telltale name={r.item.name} category={r.item.category} size="sm" />
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium">{r.item.name}</p>
-                    <p className="font-mono text-xs text-muted">
-                      {r.item.category}
-                      {r.vehicle ? ' / ' + vehicleName(r.vehicle) : ''}
-                      {r.workshop ? ' / ' + r.workshop : ''}
+            <li key={r._id} className="relative pl-11">
+              {/*the warning lamp of the item is the dot on the timeline*/}
+              <span className="absolute left-0 top-4">
+                <Telltale name={r.item.name} category={r.item.category} size="sm" />
+              </span>
+
+              <div className={'relative overflow-hidden border border-[#d9cfb4] ' + pageLines}>
+                <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-mono text-[10px] uppercase tracking-widest text-[#8a7d5c]">
+                      job no {r._id.slice(-5).toUpperCase()} / {r.item.category}
                     </p>
-                    {r.notes && <p className="mt-1 text-xs text-muted">{r.notes}</p>}
+                    <p className="mt-1 font-display text-xl font-bold uppercase leading-tight [font-stretch:125%]">{r.item.name}</p>
+                    {r.vehicle && (
+                      <div className="mt-2 flex items-center gap-2">
+                        <Plate number={r.vehicle.registrationNo} size="sm" />
+                        <span className="font-mono text-xs text-muted">{vehicleName(r.vehicle)}</span>
+                      </div>
+                    )}
+
+                    <dl className="mt-4 grid max-w-md grid-cols-3 gap-4">
+                      <BookField label="date" value={formatDate(r.serviceDate)} />
+                      <BookField label="odometer" value={formatKm(r.odometerKm)} />
+                      <BookField label="cost" value={r.cost !== undefined && r.cost !== null ? formatMoney(r.cost) : '-'} />
+                    </dl>
+                    {r.notes && (
+                      <p className="mt-4 max-w-md text-sm italic text-[#4a4433]">
+                        <span className="not-italic font-mono text-[10px] uppercase tracking-widest text-[#8a7d5c]">remarks </span>
+                        {r.notes}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-5 sm:flex-col sm:items-end">
+                    <Stamp record={r} />
+                    <Receipt url={r.receiptUrl} />
                   </div>
                 </div>
-                <div className="flex items-center justify-between gap-5 md:justify-end">
-                  <p className="font-mono text-sm">{r.cost !== undefined && r.cost !== null ? formatMoney(r.cost) : '-'}</p>
-                  <Receipt url={r.receiptUrl} />
+
+                <div className="flex justify-end border-t border-[#e3d9bf] px-5 py-2">
                   <button
                     onClick={() => {
                       setDeleteError('')
                       setDeletingId(deletingId === r._id ? null : r._id)
                     }}
-                    className="text-xs underline underline-offset-4 hover:text-bad"
+                    className="font-mono text-[11px] uppercase tracking-widest text-[#8a7d5c] underline underline-offset-4 hover:text-bad"
                   >
-                    Delete
+                    Delete entry
                   </button>
                 </div>
               </div>
+
               {deletingId === r._id && (
-                <div className="border-t border-line bg-paper p-4">
+                <div className="mt-2">
                   <ConfirmBox
                     title={'Delete ' + r.item.name + ' from ' + formatDate(r.serviceDate) + '?'}
                     text="This record and its receipt are removed for good. The schedule goes back to the previous service of this item."
@@ -263,7 +317,7 @@ function History() {
               )}
             </li>
           ))}
-        </ul>
+        </ol>
       )}
 
       {data && <Pagination page={data.page} pages={data.pages} total={data.total} label="records" onChange={setPage} />}
