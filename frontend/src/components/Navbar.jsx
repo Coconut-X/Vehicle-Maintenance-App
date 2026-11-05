@@ -3,6 +3,26 @@ import { useDispatch, useSelector } from 'react-redux'
 import { logout } from '../store/authSlice'
 import { btnOutline, btnPrimary } from './ui'
 
+//links for logged in users, shown in the bar on desktop and in a second row on mobile
+function AppLinks({ linkClass }) {
+  return (
+    <>
+      <NavLink to="/dashboard" className={linkClass}>
+        Dashboard
+      </NavLink>
+      <NavLink to="/garage" className={linkClass}>
+        Garage
+      </NavLink>
+      <NavLink to="/history" className={linkClass}>
+        History
+      </NavLink>
+      <NavLink to="/analytics" className={linkClass}>
+        Analytics
+      </NavLink>
+    </>
+  )
+}
+
 function Navbar() {
   const { token, user } = useSelector((state) => state.auth)
   const dispatch = useDispatch()
@@ -17,33 +37,27 @@ function Navbar() {
 
   return (
     <header className="sticky top-0 z-10 border-b border-line bg-paper/90 backdrop-blur">
-      <nav className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
-        <div className="flex items-center gap-3 sm:gap-6">
+      <nav className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 px-6">
+        <div className="flex h-14 items-center gap-6">
           <Link to="/" className="flex items-center gap-2">
             <span className="flex h-6 w-6 items-center justify-center bg-ink font-mono text-xs font-medium text-accent">
               cv
             </span>
-            <span className="hidden font-semibold tracking-tight sm:inline">carvault</span>
+            <span className="font-semibold tracking-tight">carvault</span>
           </Link>
           {token && (
-            <>
-              <NavLink to="/dashboard" className={linkClass}>
-                Dashboard
-              </NavLink>
-              <NavLink to="/garage" className={linkClass}>
-                Garage
-              </NavLink>
-              <NavLink to="/history" className={linkClass}>
-                History
-              </NavLink>
-            </>
+            <div className="hidden items-center gap-6 md:flex">
+              <AppLinks linkClass={linkClass} />
+            </div>
           )}
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex h-14 items-center gap-3">
           {token ? (
             <>
-              <span className="hidden font-mono text-xs text-muted sm:inline">{user?.name}</span>
+              <NavLink to="/profile" className={({ isActive }) => linkClass({ isActive }) + ' hidden font-mono !text-xs sm:inline'}>
+                {user?.name}
+              </NavLink>
               <button onClick={handleLogout} className={btnOutline + ' !py-1.5'}>
                 Log out
               </button>
@@ -59,6 +73,16 @@ function Navbar() {
             </>
           )}
         </div>
+
+        {/*on small screens the links go on their own row so nothing scrolls sideways*/}
+        {token && (
+          <div className="-mx-6 flex w-[calc(100%+3rem)] flex-wrap gap-x-5 gap-y-1 border-t border-line px-6 py-2.5 md:hidden">
+            <AppLinks linkClass={linkClass} />
+            <NavLink to="/profile" className={linkClass}>
+              Profile
+            </NavLink>
+          </div>
+        )}
       </nav>
     </header>
   )

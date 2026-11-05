@@ -14,6 +14,8 @@ import VehicleForm from './pages/VehicleForm'
 import VehicleDetail from './pages/VehicleDetail'
 import LogService from './pages/LogService'
 import History from './pages/History'
+import Analytics from './pages/Analytics'
+import Profile from './pages/Profile'
 import NotFound from './pages/NotFound'
 
 function App() {
@@ -46,6 +48,8 @@ function App() {
             <Route path="/vehicles/:id/edit" element={<VehicleForm />} />
             <Route path="/vehicles/:id/log" element={<LogService />} />
             <Route path="/history" element={<History />} />
+            <Route path="/analytics" element={<Analytics />} />
+            <Route path="/profile" element={<Profile />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />
