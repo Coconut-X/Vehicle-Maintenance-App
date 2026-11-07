@@ -6,17 +6,25 @@ import { loginSuccess } from '../store/authSlice'
 import { validateLogin } from '../validate'
 import Field from '../components/Field'
 import AuthLayout from '../components/AuthLayout'
-import { btnPrimary, labelClass } from '../components/ui'
+import useCooldown from '../useCooldown'
+import { btnOutline, btnPrimary, labelClass } from '../components/ui'
 
 function Login() {
-  const [form, setForm] = useState({ email: '', password: '' })
+  const location = useLocation()
+
+  //email and notice come from the verify and reset pages, so the user only types the password
+  const [form, setForm] = useState({ email: location.state?.email || '', password: '' })
   const [errors, setErrors] = useState({})
   const [formError, setFormError] = useState('')
   const [loading, setLoading] = useState(false)
 
+  //set when the password was right but the email was never verified
+  const [unverified, setUnverified] = useState(false)
+  const [resendNote, setResendNote] = useState('')
+  const [left, startCooldown] = useCooldown(60)
+
   const token = useSelector((state) => state.auth.token)
   const dispatch = useDispatch()
-  const location = useLocation()
 
   //if the user was sent here from a protected page, go back there after login
   const from = location.state?.from?.pathname || '/dashboard'
@@ -33,6 +41,8 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setFormError('')
+    setUnverified(false)
+    setResendNote('')
 
     const found = validateLogin(form)
     setErrors(found)
@@ -46,7 +56,19 @@ function Login() {
       const { message, errors: fieldErrors } = readError(err)
       setErrors(fieldErrors)
       setFormError(message)
+      setUnverified(err.response?.data?.code === 'email_not_verified')
       setLoading(false)
+    }
+  }
+
+  const resend = async () => {
+    setResendNote('')
+    startCooldown()
+    try {
+      await api.post('/auth/resend-verification', { email: form.email.trim() })
+      setResendNote('A new link is on its way.')
+    } catch (err) {
+      setResendNote(readError(err).message)
     }
   }
 
@@ -57,10 +79,25 @@ function Login() {
         <h1 className="mt-3 text-3xl font-semibold tracking-tight">Welcome back.</h1>
         <p className="mt-2 text-sm text-muted">Log in to see what your vehicles need.</p>
 
+        {location.state?.notice && (
+          <p role="status" className="mt-6 border border-good bg-card px-3 py-2 text-sm text-good">
+            {location.state.notice}
+          </p>
+        )}
+
         {formError && (
           <p role="alert" className="mt-6 border border-bad bg-card px-3 py-2 text-sm text-bad">
             {formError}
           </p>
+        )}
+
+        {unverified && (
+          <div className="mt-2">
+            <button onClick={resend} disabled={left > 0} className={btnOutline + ' w-full'}>
+              {left > 0 ? 'Send again in ' + left + 's' : 'Send the link again'}
+            </button>
+            {resendNote && <p className="mt-2 text-xs text-muted">{resendNote}</p>}
+          </div>
         )}
 
         <form onSubmit={handleSubmit} noValidate className="mt-6 space-y-4">
@@ -84,6 +121,11 @@ function Login() {
             onChange={handleChange}
             error={errors.password}
           />
+          <p className="text-right text-xs">
+            <Link to="/forgot-password" className="text-muted underline underline-offset-4 hover:text-accent">
+              Forgot password?
+            </Link>
+          </p>
           <button type="submit" disabled={loading} className={btnPrimary + ' w-full'}>
             {loading ? 'Logging in...' : 'Log in'}
           </button>

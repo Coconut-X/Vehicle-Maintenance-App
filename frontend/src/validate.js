@@ -9,6 +9,21 @@ export const validateLogin = (form) => {
   return errors
 }
 
+export const validateForgot = (form) => {
+  const errors = {}
+  if (!emailRegex.test(form.email.trim())) errors.email = 'Enter a valid email address.'
+  return errors
+}
+
+export const validateReset = (form) => {
+  const errors = {}
+  if (form.password.length < 8 || !/[a-zA-Z]/.test(form.password) || !/[0-9]/.test(form.password)) {
+    errors.password = 'Use at least 8 characters with a letter and a number.'
+  }
+  if (form.confirm !== form.password) errors.confirm = 'The two passwords are not the same.'
+  return errors
+}
+
 export const validateRegister = (form) => {
   const errors = {}
   const name = form.name.trim()
