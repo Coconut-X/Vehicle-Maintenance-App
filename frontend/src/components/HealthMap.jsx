@@ -115,9 +115,9 @@ function HealthMap({ entries, vehicleId, powertrain }) {
           <div className="flex items-center gap-4">
             <PartGauge kind={current.key} used={current.used} status={current.status} electric={powertrain !== undefined && powertrain !== 'petrol'} className="h-24 w-24 shrink-0" />
             <div>
-              <p className="font-mono text-[11px] uppercase tracking-widest text-white/50">{current.tag || current.label}</p>
+              <p className="font-mono text-[11px] uppercase tracking-widest text-white/50">{(current.tag || current.label) + ' / ' + current.shows}</p>
               <h2 className={'mt-1 text-2xl font-bold uppercase leading-none ' + info.cls}>{info.head}</h2>
-              <p className="mt-2 font-mono text-xs text-white/50">{Math.round(current.used * 100)}% worn</p>
+              <p className="mt-2 font-mono text-xs text-white/50">{Math.round(current.used * 100)}% of the way to the next service</p>
             </div>
           </div>
 

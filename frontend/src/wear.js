@@ -22,13 +22,14 @@ export const usedPart = (entry) => {
 }
 
 //the systems a car can have and which catalogue categories feed each one
+//shows says what the little moving drawing of that system stands for
 const systemList = [
-  { key: 'engine', label: 'Engine', categories: ['Engine'] },
-  { key: 'fluids', label: 'Fluids', categories: ['Fluids'] },
-  { key: 'battery', label: 'Battery', categories: ['Electrical'] },
-  { key: 'brakes', label: 'Brakes', categories: ['Brakes'] },
-  { key: 'tyres', label: 'Tyres', categories: ['Tyres'] },
-  { key: 'filters', label: 'Filters', categories: ['Filters'] },
+  { key: 'engine', label: 'Engine', shows: 'oil level', categories: ['Engine'] },
+  { key: 'fluids', label: 'Fluids', shows: 'coolant level', categories: ['Fluids'] },
+  { key: 'battery', label: 'Battery', shows: 'battery life', categories: ['Electrical'] },
+  { key: 'brakes', label: 'Brakes', shows: 'pad thickness', categories: ['Brakes'] },
+  { key: 'tyres', label: 'Tyres', shows: 'tread depth', categories: ['Tyres'] },
+  { key: 'filters', label: 'Filters', shows: 'filter dirt', categories: ['Filters'] },
 ]
 
 //where each system sits on the xray picture of that car type, x and y are percent of the picture
