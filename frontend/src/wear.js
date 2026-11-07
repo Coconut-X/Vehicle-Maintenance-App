@@ -4,8 +4,20 @@ export const usedPart = (entry) => {
   const d = entry.due
   if (!d || !d.dueDate) return null
   let used = 0
-  if (entry.intervalKm && d.remainingKm !== null) used = Math.max(used, 1 - d.remainingKm / entry.intervalKm)
-  if (entry.intervalMonths && d.remainingDays !== null) used = Math.max(used, 1 - d.remainingDays / (entry.intervalMonths * 30.44))
+
+  //km part, how much of the km interval has been driven
+  if (entry.intervalKm && d.remainingKm !== null && d.remainingKm !== undefined) {
+    used = Math.max(used, 1 - d.remainingKm / entry.intervalKm)
+  }
+
+  //time part, how many of the months have passed since it was last done
+  //the days left to the due date cant be used here, that date can come from the km side
+  //and a fresh item would look partly used
+  if (entry.intervalMonths && entry.baselineDate && entry.baselineSource !== 'unknown') {
+    const days = (Date.now() - new Date(entry.baselineDate).getTime()) / (1000 * 60 * 60 * 24)
+    used = Math.max(used, days / (entry.intervalMonths * 30.44))
+  }
+
   return Math.min(1, Math.max(0, used))
 }
 

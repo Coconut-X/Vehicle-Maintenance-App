@@ -30,7 +30,7 @@ const intervalText = (entry) => {
 
 //what the user needs to do when we cant work out a due date
 const missingText = (entry, vehicle) => {
-  if (entry.baselineSource === 'unknown') return 'Set when it was last done, or log a service.'
+  if (entry.baselineSource === 'unknown') return 'Log a service for this item and we will start counting.'
   if (entry.intervalKm && !entry.intervalMonths && !vehicle.avgMonthlyKm) return 'Add your km per month to predict this.'
   return 'Not enough data yet.'
 }
@@ -67,16 +67,11 @@ function DueInfo({ entry, vehicle }) {
 }
 
 //the form that opens under a row to change its intervals
+//when it was last done is not here on purpose, only logging a service changes that
 function EntryEditor({ entry, onSaved, onCancel }) {
-  const canSetBaseline = entry.baselineSource !== 'service'
-  const startDate = entry.baselineSource !== 'unknown' && entry.baselineDate ? entry.baselineDate.slice(0, 10) : ''
-  const startKm = entry.baselineSource !== 'unknown' && entry.baselineKm != null ? String(entry.baselineKm) : ''
-
   const [form, setForm] = useState({
     intervalKm: entry.intervalKm ? String(entry.intervalKm) : '',
     intervalMonths: entry.intervalMonths ? String(entry.intervalMonths) : '',
-    baselineDate: startDate,
-    baselineKm: startKm,
   })
   const [errors, setErrors] = useState({})
   const [saving, setSaving] = useState(false)
@@ -94,8 +89,6 @@ function EntryEditor({ entry, onSaved, onCancel }) {
     }
     if (form.intervalKm !== '' && !whole(form.intervalKm, 100, 200000)) found.intervalKm = '100 to 200,000.'
     if (form.intervalMonths !== '' && !whole(form.intervalMonths, 1, 120)) found.intervalMonths = '1 to 120.'
-    if (form.baselineDate !== '' && new Date(form.baselineDate) > new Date()) found.baselineDate = 'Not in the future.'
-    if (form.baselineKm !== '' && !whole(form.baselineKm, 0, 2000000)) found.baselineKm = '0 to 2,000,000.'
     return found
   }
 
@@ -110,9 +103,6 @@ function EntryEditor({ entry, onSaved, onCancel }) {
       intervalKm: form.intervalKm === '' ? null : Number(form.intervalKm),
       intervalMonths: form.intervalMonths === '' ? null : Number(form.intervalMonths),
     }
-    //only send the baseline if it was changed, sending it marks the item as set by hand
-    if (canSetBaseline && form.baselineDate !== startDate && form.baselineDate !== '') body.baselineDate = form.baselineDate
-    if (canSetBaseline && form.baselineKm !== startKm && form.baselineKm !== '') body.baselineKm = Number(form.baselineKm)
 
     setSaving(true)
     try {
@@ -126,7 +116,7 @@ function EntryEditor({ entry, onSaved, onCancel }) {
 
   return (
     <form onSubmit={handleSubmit} noValidate className="border-t border-line bg-paper px-4 py-4">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2">
         <Field
           label="Every (km)"
           id={'km-' + entry._id}
@@ -149,33 +139,10 @@ function EntryEditor({ entry, onSaved, onCancel }) {
           error={errors.intervalMonths}
           hint="Empty = not by time"
         />
-        {canSetBaseline && (
-          <>
-            <Field
-              label="Last done (date)"
-              id={'bd-' + entry._id}
-              name="baselineDate"
-              type="date"
-              value={form.baselineDate}
-              onChange={handleChange}
-              error={errors.baselineDate}
-            />
-            <Field
-              label="Last done (km)"
-              id={'bk-' + entry._id}
-              name="baselineKm"
-              type="number"
-              inputMode="numeric"
-              value={form.baselineKm}
-              onChange={handleChange}
-              error={errors.baselineKm}
-            />
-          </>
-        )}
       </div>
-      {!canSetBaseline && (
-        <p className="mt-3 text-xs text-muted">Last done comes from your service history, so it updates when you log a service.</p>
-      )}
+      <p className="mt-3 text-xs text-muted">
+        This only changes how often the item is due. To say it was done, use Log service, that is the only way to move the last done date.
+      </p>
       <div className="mt-4 flex gap-3">
         <button type="submit" disabled={saving} className={btnPrimary + ' !py-1.5'}>
           {saving ? 'Saving...' : 'Save'}

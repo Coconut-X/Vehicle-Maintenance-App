@@ -9,6 +9,7 @@ const { projectionInfo } = require("../utils/projection");
 const { calcDue } = require("../utils/dueDate");
 const { getStatus, worstStatus } = require("../utils/status");
 const { evaluateVehicle } = require("../utils/vehicleStatus");
+const { initialBaseline } = require("../utils/initialBaseline");
 const { getString, getPaging, escapeRegex, pageInfo } = require("../utils/listQuery");
 const { POWERTRAINS } = require("../seed/catalogue");
 
@@ -95,17 +96,21 @@ const savePhoto = async (vehicle, file) => {
   }
 };
 
-const newEntry = (vehicle, item) => ({
-  owner: vehicle.owner,
-  vehicle: vehicle._id,
-  item: item._id,
-  intervalKm: item.defaultIntervalKm,
-  intervalMonths: item.defaultIntervalMonths,
-  enabled: item.appliesTo(vehicle.powertrain),
-  baselineDate: vehicle.odometerDate,
-  baselineKm: vehicle.odometerKm,
-  baselineSource: "initial",
-});
+//last done is not known yet, see initialBaseline for how it is guessed
+const newEntry = (vehicle, item) => {
+  const { baselineKm, baselineDate } = initialBaseline(vehicle, item.defaultIntervalKm);
+  return {
+    owner: vehicle.owner,
+    vehicle: vehicle._id,
+    item: item._id,
+    intervalKm: item.defaultIntervalKm,
+    intervalMonths: item.defaultIntervalMonths,
+    enabled: item.appliesTo(vehicle.powertrain),
+    baselineDate,
+    baselineKm,
+    baselineSource: "initial",
+  };
+};
 
 //after the powertrain changes turn items on or off to match, and add items the car never had
 //only items whose fit changed are touched, so wipers turned off by hand stay off

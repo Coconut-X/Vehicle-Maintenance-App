@@ -10,7 +10,8 @@ const isWholeNumber = (v, min, max) => {
   return Number.isInteger(n) && n >= min && n <= max;
 };
 
-//change intervals, turn an item on or off, or set a baseline for an item never serviced
+//change intervals or turn an item on or off
+//when an item was last done is never edited here, only logging a service moves it
 const updateEntry = async (req, res) => {
   const body = req.body || {};
   const entry = await ScheduleEntry.findOne({ _id: req.params.entryId, owner: req.userId });
@@ -56,25 +57,6 @@ const updateEntry = async (req, res) => {
       errors.enabled = "enabled must be true or false";
     } else {
       entry.enabled = body.enabled;
-    }
-  }
-
-  //baseline is when the item was last done before using the app
-  if (body.baselineDate !== undefined) {
-    const date = new Date(body.baselineDate);
-    if (isNaN(date.getTime()) || date > new Date()) {
-      errors.baselineDate = "baseline date must be a valid date and not in the future";
-    } else {
-      entry.baselineDate = date;
-      entry.baselineSource = "initial";
-    }
-  }
-
-  if (body.baselineKm !== undefined) {
-    if (isWholeNumber(body.baselineKm, 0, 2000000)) {
-      entry.baselineKm = Number(body.baselineKm);
-    } else {
-      errors.baselineKm = "baseline km must be a whole number from 0 to 2000000";
     }
   }
 

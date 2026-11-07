@@ -41,6 +41,8 @@ const getDashboard = async (req, res) => {
         due: i.due,
         intervalKm: i.entry.intervalKm,
         intervalMonths: i.entry.intervalMonths,
+        baselineDate: i.entry.baselineDate,
+        baselineSource: i.entry.baselineSource,
       })),
     });
 
