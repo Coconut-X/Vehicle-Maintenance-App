@@ -32,7 +32,7 @@ const lampText = {
 //one car in the garage, the photo on top and its systems as moving parts underneath
 function VehicleCard({ vehicle }) {
   const name = vehicleName(vehicle)
-  const systems = buildSystems(vehicle.parts)
+  const systems = buildSystems(vehicle.parts, vehicle.powertrain)
 
   return (
     <li className="border border-line bg-card">
@@ -62,7 +62,7 @@ function VehicleCard({ vehicle }) {
         <div className="flex bg-ink">
           {systems.map((s) => (
             <div key={s.key} className="flex flex-1 flex-col items-center gap-1 border-r border-white/10 py-2.5 last:border-r-0" title={s.label}>
-              <PartGauge kind={s.key} used={s.used} status={s.status} className="h-8 w-8" />
+              <PartGauge kind={s.key} used={s.used} status={s.status} electric={vehicle.powertrain !== 'petrol'} className="h-8 w-8" />
               <span className={'font-mono text-[9px] uppercase tracking-widest ' + (lampText[s.status] || 'text-white/50')}>{s.label}</span>
             </div>
           ))}

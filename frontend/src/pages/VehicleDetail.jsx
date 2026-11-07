@@ -189,7 +189,7 @@ function VehicleDetail() {
         </p>
       )}
 
-      <HealthMap entries={schedule} vehicleId={id} />
+      <HealthMap entries={schedule} vehicleId={id} powertrain={vehicle.powertrain} />
 
       <div className="mt-10 flex gap-6 border-b border-line">
         <span className="-mb-px border-b-2 border-ink pb-2 text-sm font-medium">Schedule</span>

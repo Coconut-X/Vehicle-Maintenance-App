@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import PartGauge from './PartGauge'
 import SegmentBar from './SegmentBar'
-import { buildSystems, rank, usedPart } from '../wear'
+import { buildSystems, rank, usedPart, xrays } from '../wear'
 import { daysText, kmLeftText } from '../format'
 
 const dotColour = {
@@ -51,15 +51,16 @@ function Hotspot({ system, active, onPick }) {
           (active ? 'border-white bg-white text-ink' : 'border-white/20 bg-black/70 text-white/80 hover:border-white/60')
         }
       >
-        {system.label}
+        {system.tag || system.label}
       </span>
     </button>
   )
 }
 
 //xray of the car where every system lights up by its status, pick one to see its parts
-function HealthMap({ entries, vehicleId }) {
-  const systems = buildSystems(entries)
+function HealthMap({ entries, vehicleId, powertrain }) {
+  const systems = buildSystems(entries, powertrain)
+  const xray = xrays[powertrain] || xrays.petrol
   const [picked, setPicked] = useState(null)
 
   if (systems.length === 0) return null
@@ -82,7 +83,7 @@ function HealthMap({ entries, vehicleId }) {
       <div className="grid lg:grid-cols-[1.7fr_1fr]">
         <div className="min-w-0 border-b border-white/10 lg:border-r lg:border-b-0">
           <div className="relative overflow-hidden">
-            <img src="/cars/xray.webp" alt="Xray view of a car from above" className="block w-full" width="1200" height="597" />
+            <img src={xray.src} alt={xray.alt} className="block w-full" width="1200" height="597" />
             {/*scanner line sweeping over the car like a diagnostic machine*/}
             <span className="xray-scan pointer-events-none absolute inset-y-0 w-24" aria-hidden="true" />
             {systems.map((s) => (
@@ -102,7 +103,7 @@ function HealthMap({ entries, vehicleId }) {
                   (s.key === current.key ? 'bg-white/10' : 'hover:bg-white/5')
                 }
               >
-                <PartGauge kind={s.key} used={s.used} status={s.status} className="h-10 w-10" />
+                <PartGauge kind={s.key} used={s.used} status={s.status} electric={powertrain !== undefined && powertrain !== 'petrol'} className="h-10 w-10" />
                 <span className="font-mono text-[10px] uppercase tracking-widest text-white/70">{s.label}</span>
                 <span className={'font-mono text-[10px] uppercase ' + statusText[s.status].cls}>{statusText[s.status].label}</span>
               </button>
@@ -112,9 +113,9 @@ function HealthMap({ entries, vehicleId }) {
 
         <div className="p-5">
           <div className="flex items-center gap-4">
-            <PartGauge kind={current.key} used={current.used} status={current.status} className="h-24 w-24 shrink-0" />
+            <PartGauge kind={current.key} used={current.used} status={current.status} electric={powertrain !== undefined && powertrain !== 'petrol'} className="h-24 w-24 shrink-0" />
             <div>
-              <p className="font-mono text-[11px] uppercase tracking-widest text-white/50">{current.label}</p>
+              <p className="font-mono text-[11px] uppercase tracking-widest text-white/50">{current.tag || current.label}</p>
               <h2 className={'mt-1 text-2xl font-bold uppercase leading-none ' + info.cls}>{info.head}</h2>
               <p className="mt-2 font-mono text-xs text-white/50">{Math.round(current.used * 100)}% worn</p>
             </div>

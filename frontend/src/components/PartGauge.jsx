@@ -96,7 +96,8 @@ function Brake({ used, due }) {
 }
 
 //battery with five cells, they go out one by one, the last one blinks when its due
-function Battery({ used, due }) {
+//a lightning bolt on top means it is the drive battery of a hybrid or electric car
+function Battery({ used, due, electric }) {
   const lit = Math.max(1, Math.round((1 - used) * 5))
   return (
     <>
@@ -112,6 +113,7 @@ function Battery({ used, due }) {
           className={due && i === lit - 1 ? 'lamp-blink' : ''}
         />
       ))}
+      {electric && <path d="M34 23l-8 10h6l-3 9 9-12h-6z" fill="#0a0a0a" stroke={frame} strokeWidth="1" strokeLinejoin="round" />}
     </>
   )
 }
@@ -154,7 +156,7 @@ const parts = {
   filters: Filter,
 }
 
-function PartGauge({ kind, used = 0, status, className = '' }) {
+function PartGauge({ kind, used = 0, status, electric = false, className = '' }) {
   //svg ids cant have the colons react puts in useId
   const clip = 'clip' + useId().replace(/[^a-zA-Z0-9]/g, '')
   const Part = parts[kind]
@@ -163,7 +165,7 @@ function PartGauge({ kind, used = 0, status, className = '' }) {
 
   return (
     <svg viewBox="0 0 64 64" className={(lampText[status] || 'text-lamp-off') + ' ' + className} aria-hidden="true">
-      <Part used={used} due={due} clip={clip} />
+      <Part used={used} due={due} clip={clip} electric={electric} />
     </svg>
   )
 }
