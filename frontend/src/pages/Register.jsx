@@ -90,14 +90,17 @@ function Register() {
       <AuthLayout>
         <div className="w-full max-w-sm">
           <p className={labelClass + ' !text-accent'}>almost there</p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight">Check your email.</h1>
-          <p className="mt-2 text-sm text-muted">
-            We sent a link to <span className="font-medium text-ink">{sent.email}</span>. Open it to switch your account on.
-          </p>
-
-          {!sent.emailSent && (
-            <p role="alert" className="mt-6 border border-warn bg-card px-3 py-2 text-sm text-warn">
-              We could not send the email just now. Press the button below to try again.
+          <h1 className="mt-3 text-3xl font-semibold tracking-tight">
+            {sent.emailSent ? 'Check your email.' : 'Email not sent.'}
+          </h1>
+          {sent.emailSent ? (
+            <p className="mt-2 text-sm text-muted">
+              We sent a link to <span className="font-medium text-ink">{sent.email}</span>. Open it to switch your account on.
+            </p>
+          ) : (
+            <p className="mt-2 text-sm text-muted">
+              Your account for <span className="font-medium text-ink">{sent.email}</span> is saved, but we could not send the link just now.
+              Press the button below to try again.
             </p>
           )}
 
@@ -105,12 +108,12 @@ function Register() {
             role="status"
             className="mt-6 flex items-center gap-2 border border-line bg-card px-3 py-2 font-mono text-[11px] uppercase tracking-widest text-muted"
           >
-            <span className="lamp-blink h-2 w-2 bg-lamp-amber" aria-hidden="true" />
-            waiting for you to open the link
+            <span className={'h-2 w-2 ' + (sent.emailSent ? 'lamp-blink bg-lamp-amber' : 'bg-lamp-red')} aria-hidden="true" />
+            {sent.emailSent ? 'waiting for you to open the link' : 'link not sent'}
           </p>
 
           <button onClick={resend} disabled={left > 0} className={btnOutline + ' mt-4 w-full'}>
-            {left > 0 ? 'Send again in ' + left + 's' : 'Send the link again'}
+            {left > 0 ? 'Send again in ' + left + 's' : sent.emailSent ? 'Send the link again' : 'Try sending again'}
           </button>
           {resendNote && <p className="mt-2 text-xs text-muted">{resendNote}</p>}
 
