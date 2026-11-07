@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import api, { readError } from '../api'
+import { loginSuccess } from '../store/authSlice'
 import { validateRegister } from '../validate'
 import Field from '../components/Field'
 import AuthLayout from '../components/AuthLayout'
@@ -17,7 +18,8 @@ function Register() {
   //set after signing up, the page then asks the user to open the link we emailed
   const [sent, setSent] = useState(null)
   const [resendNote, setResendNote] = useState('')
-  const [left, startCooldown] = useCooldown(60)
+  const [left, startCooldown, resetCooldown] = useCooldown(30)
+  const dispatch = useDispatch()
 
   const token = useSelector((state) => state.auth.token)
   const navigate = useNavigate()
@@ -37,6 +39,28 @@ function Register() {
     window.addEventListener('storage', onStorage)
     return () => window.removeEventListener('storage', onStorage)
   }, [sent, navigate])
+
+  //the link can be opened on a phone or in another browser, then no tab here gets told
+  //so when the user comes back to this tab, try to log in with the password they just typed
+  //it is only tried on coming back, not on a timer, because logins are limited
+  useEffect(() => {
+    if (!sent) return
+    const tryLogin = async () => {
+      if (document.visibilityState !== 'visible') return
+      try {
+        const res = await api.post('/auth/login', { email: sent.email, password: form.password })
+        dispatch(loginSuccess(res.data))
+      } catch {
+        //403 means the link was not opened yet, nothing to do
+      }
+    }
+    document.addEventListener('visibilitychange', tryLogin)
+    window.addEventListener('focus', tryLogin)
+    return () => {
+      document.removeEventListener('visibilitychange', tryLogin)
+      window.removeEventListener('focus', tryLogin)
+    }
+  }, [sent, form.password, dispatch])
 
   //already logged in
   if (token) {
@@ -78,8 +102,14 @@ function Register() {
     setResendNote('')
     startCooldown()
     try {
-      await api.post('/auth/resend-verification', { email: sent.email })
-      setResendNote('A new link is on its way.')
+      const res = await api.post('/auth/resend-verification', { email: sent.email })
+      if (res.data.emailSent === false) {
+        //nothing was sent, so no waiting
+        resetCooldown()
+        setResendNote('We could not send the email just now. Try again in a moment.')
+      } else {
+        setResendNote('A new link is on its way.')
+      }
     } catch (err) {
       setResendNote(readError(err).message)
     }
@@ -112,12 +142,20 @@ function Register() {
             {sent.emailSent ? 'waiting for you to open the link' : 'link not sent'}
           </p>
 
+          {sent.emailSent && <p className="mt-3 text-xs text-muted">Nothing yet? Look in your spam folder too.</p>}
+
           <button onClick={resend} disabled={left > 0} className={btnOutline + ' mt-4 w-full'}>
             {left > 0 ? 'Send again in ' + left + 's' : sent.emailSent ? 'Send the link again' : 'Try sending again'}
           </button>
           {resendNote && <p className="mt-2 text-xs text-muted">{resendNote}</p>}
 
           <p className="mt-6 text-sm text-muted">
+            Already verified?{' '}
+            <Link to="/login" state={{ email: sent.email }} className="text-ink underline underline-offset-4 hover:text-accent">
+              Log in
+            </Link>
+          </p>
+          <p className="mt-2 text-sm text-muted">
             Wrong email?{' '}
             <button onClick={() => setSent(null)} className="text-ink underline underline-offset-4 hover:text-accent">
               Start again

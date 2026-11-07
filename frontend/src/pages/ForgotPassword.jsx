@@ -14,7 +14,7 @@ function ForgotPassword() {
   const [formError, setFormError] = useState('')
   const [loading, setLoading] = useState(false)
   const [sentTo, setSentTo] = useState('')
-  const [left, startCooldown] = useCooldown(60)
+  const [left, startCooldown] = useCooldown(30)
 
   const send = async (email) => {
     await api.post('/auth/forgot-password', { email })
@@ -64,7 +64,9 @@ function ForgotPassword() {
             </p>
           )}
 
-          <button onClick={sendAgain} disabled={left > 0} className={btnOutline + ' mt-6 w-full'}>
+          <p className="mt-3 text-xs text-muted">Nothing yet? Look in your spam folder too.</p>
+
+          <button onClick={sendAgain} disabled={left > 0} className={btnOutline + ' mt-4 w-full'}>
             {left > 0 ? 'Send again in ' + left + 's' : 'Send the link again'}
           </button>
           <p className="mt-6 text-sm text-muted">

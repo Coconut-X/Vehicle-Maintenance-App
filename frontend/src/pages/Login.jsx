@@ -21,7 +21,7 @@ function Login() {
   //set when the password was right but the email was never verified
   const [unverified, setUnverified] = useState(false)
   const [resendNote, setResendNote] = useState('')
-  const [left, startCooldown] = useCooldown(60)
+  const [left, startCooldown, resetCooldown] = useCooldown(30)
 
   const token = useSelector((state) => state.auth.token)
   const dispatch = useDispatch()
@@ -65,8 +65,14 @@ function Login() {
     setResendNote('')
     startCooldown()
     try {
-      await api.post('/auth/resend-verification', { email: form.email.trim() })
-      setResendNote('A new link is on its way.')
+      const res = await api.post('/auth/resend-verification', { email: form.email.trim() })
+      if (res.data.emailSent === false) {
+        //nothing was sent, so no waiting
+        resetCooldown()
+        setResendNote('We could not send the email just now. Try again in a moment.')
+      } else {
+        setResendNote('A new link is on its way.')
+      }
     } catch (err) {
       setResendNote(readError(err).message)
     }
@@ -97,6 +103,7 @@ function Login() {
               {left > 0 ? 'Send again in ' + left + 's' : 'Send the link again'}
             </button>
             {resendNote && <p className="mt-2 text-xs text-muted">{resendNote}</p>}
+            <p className="mt-2 text-xs text-muted">Nothing in your inbox? Look in your spam folder too.</p>
           </div>
         )}
 

@@ -28,7 +28,7 @@ const passwordOk = (p) => typeof p === "string" && p.length >= 8 && /[a-zA-Z]/.t
 const VERIFY_HOURS = 24;
 const RESET_HOURS = 1;
 //a new link can only be asked once in this time, so nobody can use us to flood an inbox
-const RESEND_WAIT_MS = 60 * 1000;
+const RESEND_WAIT_MS = 30 * 1000;
 
 //makes a fresh link, saves its hash on the user and emails it, an older link stops working
 const sendVerification = async (user) => {
@@ -177,6 +177,9 @@ const resendVerification = async (req, res) => {
     await sendVerification(user);
   } catch (err) {
     console.log("verification email failed: " + err.message);
+    //only an account waiting for verification gets here, and only when our email sending is broken
+    //so telling the user is worth more than hiding it
+    return res.json({ ...answer, emailSent: false });
   }
   res.json(answer);
 };

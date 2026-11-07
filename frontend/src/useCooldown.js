@@ -11,7 +11,7 @@ function useCooldown(seconds) {
     return () => clearInterval(timer)
   }, [endsAt])
 
-  const left = Math.max(0, Math.ceil((endsAt - now) / 1000))
+  const left = endsAt ? Math.max(0, Math.ceil((endsAt - now) / 1000)) : 0
 
   const start = () => {
     const t = Date.now()
@@ -19,7 +19,10 @@ function useCooldown(seconds) {
     setEndsAt(t + seconds * 1000)
   }
 
-  return [left, start]
+  //stops the wait, used when nothing was sent
+  const reset = () => setEndsAt(0)
+
+  return [left, start, reset]
 }
 
 export default useCooldown
