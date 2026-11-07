@@ -63,8 +63,8 @@ function Register() {
       const res = await api.post('/auth/register', body)
       setSent({ email: res.data.email, emailSent: res.data.emailSent })
       setLoading(false)
-      //the server also waits a minute before sending another
-      startCooldown()
+      //the server also waits a minute before sending another, but only if one was really sent
+      if (res.data.emailSent) startCooldown()
     } catch (err) {
       //server field errors like email already registered show under the field
       const { message, errors: fieldErrors } = readError(err)

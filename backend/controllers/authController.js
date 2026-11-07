@@ -39,12 +39,19 @@ const sendVerification = async (user) => {
   await user.save();
 
   const link = appUrl() + "/verify-email?token=" + token;
-  await sendMail(
-    user.email,
-    "Verify your CarVault email",
-    "Hi " + user.name + ",\n\nconfirm your email to start using CarVault:\n" + link +
-      "\n\nThe link works for " + VERIFY_HOURS + " hours. If you did not sign up, ignore this email."
-  );
+  try {
+    await sendMail(
+      user.email,
+      "Verify your CarVault email",
+      "Hi " + user.name + ",\n\nconfirm your email to start using CarVault:\n" + link +
+        "\n\nThe link works for " + VERIFY_HOURS + " hours. If you did not sign up, ignore this email."
+    );
+  } catch (err) {
+    //nothing was sent, so there is nothing to wait for and the user can try again straight away
+    user.verifySentAt = undefined;
+    await user.save();
+    throw err;
+  }
 };
 
 const register = async (req, res) => {
@@ -203,6 +210,9 @@ const forgotPassword = async (req, res) => {
     );
   } catch (err) {
     console.log("reset email failed: " + err.message);
+    //nothing was sent so asking again is allowed right away
+    user.resetSentAt = undefined;
+    await user.save().catch(() => {});
   }
 };
 
