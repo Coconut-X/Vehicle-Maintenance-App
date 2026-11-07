@@ -44,18 +44,31 @@ function VehicleCard({ v, bay }) {
   return (
     <Link to={'/vehicles/' + v._id} className="group block">
       <div className={'relative aspect-[16/10] overflow-hidden ' + bayLines + ' ' + floor}>
-        <span className="absolute left-3 top-2 font-display text-4xl font-bold text-ink/10 [font-stretch:125%]">
-          {String(bay).padStart(2, '0')}
-        </span>
-        <div className="absolute inset-x-0 top-[12%] bottom-[14%] transition-transform duration-700 ease-out group-hover:translate-x-3">
-          {v.photoUrl ? (
-            <img src={v.photoUrl} alt={vehicleName(v)} loading="lazy" className="h-full w-full object-cover" />
-          ) : (
-            <CarArt powertrain={v.powertrain} className="!bg-transparent" />
-          )}
-        </div>
-        {/*wheel stop at the back of the bay*/}
-        <span className="absolute bottom-3 left-1/2 h-2 w-1/3 -translate-x-1/2 bg-[repeating-linear-gradient(90deg,#111110_0_12px,#e2b33c_12px_24px)]" />
+        {v.photoUrl ? (
+          <>
+            {/*a photo of the owner fills the whole bay*/}
+            <img
+              src={v.photoUrl}
+              alt={vehicleName(v)}
+              loading="lazy"
+              className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+            />
+            <span className="absolute left-3 top-3 bg-ink/80 px-1.5 py-0.5 font-mono text-[11px] tracking-widest text-white">
+              BAY {String(bay).padStart(2, '0')}
+            </span>
+          </>
+        ) : (
+          <>
+            <span className="absolute left-3 top-2 font-display text-4xl font-bold text-ink/10 [font-stretch:125%]">
+              {String(bay).padStart(2, '0')}
+            </span>
+            <div className="absolute inset-x-0 top-[12%] bottom-[14%] transition-transform duration-700 ease-out group-hover:translate-x-3">
+              <CarArt powertrain={v.powertrain} className="!bg-transparent" />
+            </div>
+            {/*wheel stop at the back of the bay*/}
+            <span className="absolute bottom-3 left-1/2 h-2 w-1/3 -translate-x-1/2 bg-[repeating-linear-gradient(90deg,#111110_0_12px,#e2b33c_12px_24px)]" />
+          </>
+        )}
       </div>
 
       <div className="bg-ink px-4 py-3 text-white transition-colors group-hover:bg-[#1d1d1b]">

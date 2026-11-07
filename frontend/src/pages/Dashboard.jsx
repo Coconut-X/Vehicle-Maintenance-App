@@ -39,7 +39,7 @@ function VehicleCard({ vehicle }) {
       <Link to={'/vehicles/' + vehicle._id} className="group block">
         <div className="relative aspect-[16/8] border-b border-line">
           {vehicle.photoUrl ? (
-            <img src={vehicle.photoUrl} alt={name} className="h-full w-full object-cover" />
+            <img src={vehicle.photoUrl} alt={name} className="absolute inset-0 h-full w-full object-cover" />
           ) : (
             <CarArt powertrain={vehicle.powertrain} className="transition-transform duration-500 group-hover:scale-[1.03]" />
           )}

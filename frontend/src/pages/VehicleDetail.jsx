@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import api, { readError } from '../api'
 import { formatDate, formatKm, powertrainLabel, vehicleName } from '../format'
@@ -31,6 +31,9 @@ function VehicleDetail() {
   const [confirming, setConfirming] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
+  const [photoBusy, setPhotoBusy] = useState(false)
+  const [photoError, setPhotoError] = useState('')
+  const photoInput = useRef(null)
 
   useEffect(() => {
     let cancelled = false
@@ -60,6 +63,39 @@ function VehicleDetail() {
   const reloadSchedule = async () => {
     const res = await api.get('/vehicles/' + id + '/schedule')
     setResult((r) => ({ ...r, schedule: res.data.schedule, summary: res.data.summary }))
+  }
+
+  //a new photo replaces the old one, the server deletes the old file
+  const changePhoto = async (e) => {
+    const file = e.target.files[0]
+    //same file picked again should still fire the change event
+    e.target.value = ''
+    if (!file) return
+
+    setPhotoError('')
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setPhotoError('Photo must be a jpg, png or webp image.')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setPhotoError('Photo must be 5MB or less.')
+      return
+    }
+
+    setPhotoBusy(true)
+    try {
+      const body = new FormData()
+      body.append('photo', file)
+      const res = await api.put('/vehicles/' + id, body)
+      if (res.data.warning) {
+        setPhotoError(res.data.warning)
+      } else {
+        setResult((r) => ({ ...r, vehicle: { ...r.vehicle, photoUrl: res.data.vehicle.photoUrl } }))
+      }
+    } catch (err) {
+      setPhotoError(readError(err).message)
+    }
+    setPhotoBusy(false)
   }
 
   const handleDelete = async () => {
@@ -102,14 +138,34 @@ function VehicleDetail() {
       </Link>
 
       <div className="mt-4 flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
-        <div className="flex gap-5">
-          {vehicle.photoUrl ? (
-            <img src={vehicle.photoUrl} alt={name} className="hidden aspect-[16/9] w-40 border border-line object-cover sm:block" />
-          ) : (
-            <div className="hidden aspect-[16/9] w-40 shrink-0 border border-line sm:block">
-              <CarArt powertrain={vehicle.powertrain} />
+        <div className="flex flex-col gap-5 sm:flex-row">
+          <div className="w-full shrink-0 sm:w-52">
+            <div className="relative aspect-[16/9] border border-line bg-card">
+              {vehicle.photoUrl ? (
+                <img src={vehicle.photoUrl} alt={name} className="absolute inset-0 h-full w-full object-cover" />
+              ) : (
+                <CarArt powertrain={vehicle.powertrain} />
+              )}
+              {photoBusy && (
+                <span className="absolute inset-0 flex items-center justify-center bg-ink/60 font-mono text-[11px] uppercase tracking-widest text-white">
+                  uploading...
+                </span>
+              )}
             </div>
-          )}
+            <input ref={photoInput} type="file" accept="image/jpeg,image/png,image/webp" onChange={changePhoto} className="hidden" />
+            <button
+              onClick={() => photoInput.current.click()}
+              disabled={photoBusy}
+              className="mt-2 font-mono text-[11px] uppercase tracking-widest text-muted underline underline-offset-4 hover:text-accent disabled:opacity-50"
+            >
+              {vehicle.photoUrl ? 'Change photo' : 'Add your own photo'}
+            </button>
+            {photoError && (
+              <p role="alert" className="mt-1 text-xs text-bad">
+                {photoError}
+              </p>
+            )}
+          </div>
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-3xl font-semibold tracking-tight">{name}</h1>
