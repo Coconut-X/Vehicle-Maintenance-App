@@ -31,7 +31,8 @@ const sendMail = async (to, subject, text) => {
     text,
   });
   if (!process.env.SMTP_HOST) {
-    console.log("email (not sent) to " + to + ": " + subject);
+    //the text is printed too so a verification link can be copied while developing
+    console.log("email (not sent) to " + to + ": " + subject + "\n" + text);
   }
   return info;
 };

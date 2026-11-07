@@ -21,6 +21,35 @@ const userSchema = new mongoose.Schema(
       required: true,
       select: false, //never send hash back unless asked
     },
+    //no default on purpose, accounts made before verification existed have no value and count as verified
+    //only a new signup is saved as false
+    emailVerified: {
+      type: Boolean,
+    },
+    verifyTokenHash: {
+      type: String,
+      select: false,
+    },
+    verifyExpires: {
+      type: Date,
+      select: false,
+    },
+    verifySentAt: {
+      type: Date,
+      select: false,
+    },
+    resetTokenHash: {
+      type: String,
+      select: false,
+    },
+    resetExpires: {
+      type: Date,
+      select: false,
+    },
+    resetSentAt: {
+      type: Date,
+      select: false,
+    },
     remindersEnabled: {
       type: Boolean,
       default: true,
