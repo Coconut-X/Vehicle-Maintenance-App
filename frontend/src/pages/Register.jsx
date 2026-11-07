@@ -1,12 +1,12 @@
-import { useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
-import { useDispatch, useSelector } from 'react-redux'
+import { useEffect, useState } from 'react'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { useSelector } from 'react-redux'
 import api, { readError } from '../api'
-import { loginSuccess } from '../store/authSlice'
 import { validateRegister } from '../validate'
 import Field from '../components/Field'
 import AuthLayout from '../components/AuthLayout'
-import { btnPrimary, labelClass } from '../components/ui'
+import useCooldown from '../useCooldown'
+import { btnOutline, btnPrimary, labelClass } from '../components/ui'
 
 function Register() {
   const [form, setForm] = useState({ name: '', email: '', password: '', defaultMonthlyKm: '' })
@@ -14,10 +14,31 @@ function Register() {
   const [formError, setFormError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const token = useSelector((state) => state.auth.token)
-  const dispatch = useDispatch()
+  //set after signing up, the page then asks the user to open the link we emailed
+  const [sent, setSent] = useState(null)
+  const [resendNote, setResendNote] = useState('')
+  const [left, startCooldown] = useCooldown(60)
 
-  //already logged in, also runs right after a successful signup
+  const token = useSelector((state) => state.auth.token)
+  const navigate = useNavigate()
+
+  //the link is usually opened in another tab, that tab tells this one through localStorage
+  useEffect(() => {
+    if (!sent) return
+    const onStorage = (e) => {
+      if (e.key !== 'carvault_verified' || !e.newValue) return
+      try {
+        if (JSON.parse(e.newValue).email !== sent.email) return
+      } catch {
+        return
+      }
+      navigate('/login', { state: { notice: 'Email verified. Log in to start.', email: sent.email } })
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [sent, navigate])
+
+  //already logged in
   if (token) {
     return <Navigate to="/dashboard" replace />
   }
@@ -40,7 +61,10 @@ function Register() {
     setLoading(true)
     try {
       const res = await api.post('/auth/register', body)
-      dispatch(loginSuccess(res.data))
+      setSent({ email: res.data.email, emailSent: res.data.emailSent })
+      setLoading(false)
+      //the server also waits a minute before sending another
+      startCooldown()
     } catch (err) {
       //server field errors like email already registered show under the field
       const { message, errors: fieldErrors } = readError(err)
@@ -48,6 +72,57 @@ function Register() {
       setFormError(Object.keys(fieldErrors).length > 0 ? '' : message)
       setLoading(false)
     }
+  }
+
+  const resend = async () => {
+    setResendNote('')
+    startCooldown()
+    try {
+      await api.post('/auth/resend-verification', { email: sent.email })
+      setResendNote('A new link is on its way.')
+    } catch (err) {
+      setResendNote(readError(err).message)
+    }
+  }
+
+  if (sent) {
+    return (
+      <AuthLayout>
+        <div className="w-full max-w-sm">
+          <p className={labelClass + ' !text-accent'}>almost there</p>
+          <h1 className="mt-3 text-3xl font-semibold tracking-tight">Check your email.</h1>
+          <p className="mt-2 text-sm text-muted">
+            We sent a link to <span className="font-medium text-ink">{sent.email}</span>. Open it to switch your account on.
+          </p>
+
+          {!sent.emailSent && (
+            <p role="alert" className="mt-6 border border-warn bg-card px-3 py-2 text-sm text-warn">
+              We could not send the email just now. Press the button below to try again.
+            </p>
+          )}
+
+          <p
+            role="status"
+            className="mt-6 flex items-center gap-2 border border-line bg-card px-3 py-2 font-mono text-[11px] uppercase tracking-widest text-muted"
+          >
+            <span className="lamp-blink h-2 w-2 bg-lamp-amber" aria-hidden="true" />
+            waiting for you to open the link
+          </p>
+
+          <button onClick={resend} disabled={left > 0} className={btnOutline + ' mt-4 w-full'}>
+            {left > 0 ? 'Send again in ' + left + 's' : 'Send the link again'}
+          </button>
+          {resendNote && <p className="mt-2 text-xs text-muted">{resendNote}</p>}
+
+          <p className="mt-6 text-sm text-muted">
+            Wrong email?{' '}
+            <button onClick={() => setSent(null)} className="text-ink underline underline-offset-4 hover:text-accent">
+              Start again
+            </button>
+          </p>
+        </div>
+      </AuthLayout>
+    )
   }
 
   return (
