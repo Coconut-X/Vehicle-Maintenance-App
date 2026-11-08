@@ -9,6 +9,23 @@ export const validateLogin = (form) => {
   return errors
 }
 
+//emails typed one on each line or split by commas or spaces, lowercase and without repeats
+export const parseEmails = (text) => {
+  const seen = new Set()
+  const valid = []
+  const invalid = []
+  text
+    .split(/[\s,;]+/)
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean)
+    .forEach((e) => {
+      if (seen.has(e)) return
+      seen.add(e)
+      ;(emailRegex.test(e) ? valid : invalid).push(e)
+    })
+  return { valid, invalid }
+}
+
 export const validateForgot = (form) => {
   const errors = {}
   if (!emailRegex.test(form.email.trim())) errors.email = 'Enter a valid email address.'

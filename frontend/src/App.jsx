@@ -19,6 +19,9 @@ import LogService from './pages/LogService'
 import History from './pages/History'
 import Analytics from './pages/Analytics'
 import Profile from './pages/Profile'
+import Groups from './pages/Groups'
+import GroupDetail from './pages/GroupDetail'
+import Join from './pages/Join'
 import NotFound from './pages/NotFound'
 
 function App() {
@@ -45,6 +48,7 @@ function App() {
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/join" element={<Join />} />
 
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<Dashboard />} />
@@ -55,6 +59,8 @@ function App() {
             <Route path="/vehicles/:id/log" element={<LogService />} />
             <Route path="/history" element={<History />} />
             <Route path="/analytics" element={<Analytics />} />
+            <Route path="/groups" element={<Groups />} />
+            <Route path="/groups/:id" element={<GroupDetail />} />
             <Route path="/profile" element={<Profile />} />
           </Route>
 

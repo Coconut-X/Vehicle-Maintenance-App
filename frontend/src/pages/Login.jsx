@@ -27,7 +27,9 @@ function Login() {
   const dispatch = useDispatch()
 
   //if the user was sent here from a protected page, go back there after login
-  const from = location.state?.from?.pathname || '/dashboard'
+  //the query is kept too, an invitation link needs its token after login
+  const wanted = location.state?.from
+  const from = wanted ? wanted.pathname + (wanted.search || '') : '/dashboard'
 
   //already logged in, also runs right after a successful login
   if (token) {

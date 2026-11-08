@@ -10,6 +10,7 @@ const pages = [
   { to: '/garage', label: 'Garage' },
   { to: '/history', label: 'History' },
   { to: '/analytics', label: 'Analytics' },
+  { to: '/groups', label: 'Family' },
 ]
 
 function Navbar() {
