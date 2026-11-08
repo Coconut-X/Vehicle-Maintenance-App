@@ -27,7 +27,9 @@ const resetBaseline = async (vehicleId, itemId) => {
 };
 
 //a newer reading from a service replaces the vehicles last known odometer
+//a guessed reading is never used as the cars real one
 const updateOdometer = (vehicle, record) => {
+  if (record.odometerEstimated) return;
   if (record.serviceDate > vehicle.odometerDate) {
     vehicle.odometerKm = record.odometerKm;
     vehicle.odometerDate = record.serviceDate;
@@ -37,7 +39,8 @@ const updateOdometer = (vehicle, record) => {
 //srs 4.1 self correction, work out avg km per month from the earliest and latest readings
 //needs at least 30 days between them, otherwise the users own figure is kept
 const recalcUsage = async (vehicle) => {
-  const records = await ServiceRecord.find({ vehicle: vehicle._id }).select("serviceDate odometerKm");
+  //guessed readings are left out, working usage out from guesses would only confirm the guess
+  const records = await ServiceRecord.find({ vehicle: vehicle._id, odometerEstimated: { $ne: true } }).select("serviceDate odometerKm");
 
   const readings = records.map((r) => ({ date: r.serviceDate, km: r.odometerKm }));
   readings.push({ date: vehicle.odometerDate, km: vehicle.odometerKm });

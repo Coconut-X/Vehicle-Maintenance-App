@@ -5,12 +5,16 @@ const { uploadImage, deleteImage } = require("../config/cloudinary");
 const { resetBaseline, updateOdometer, recalcUsage } = require("../utils/serviceSync");
 const { calcDue } = require("../utils/dueDate");
 const { getStatus } = require("../utils/status");
+const { odometerRange } = require("../utils/odometerRange");
 const { getString, getPaging, escapeRegex, pageInfo } = require("../utils/listQuery");
 
 const isWholeNumber = (v, min, max) => {
   const n = Number(v);
   return v !== "" && v !== null && Number.isInteger(n) && n >= min && n <= max;
 };
+
+//an empty odometer means the user doesnt remember it, we estimate it from the date
+const isBlank = (v) => v === undefined || v === null || v === "";
 
 const isValidId = (id) => typeof id === "string" && /^[a-f0-9]{24}$/i.test(id);
 
@@ -27,7 +31,8 @@ const validateService = (body, partial) => {
       errors.serviceDate = "service date can't be in the future";
     }
   }
-  if (!partial || has("odometerKm")) {
+  //optional, only a value that was given is checked
+  if (has("odometerKm") && !isBlank(body.odometerKm)) {
     if (!isWholeNumber(body.odometerKm, 0, 2000000)) errors.odometerKm = "odometer must be a whole number from 0 to 2000000";
   }
   if (has("cost") && body.cost !== "") {
@@ -46,8 +51,9 @@ const validateService = (body, partial) => {
 
 //odometer cant go backwards, so a service cant have less km than an earlier one
 //or more km than a later one, skipId is used when editing a record
+//guessed readings are left out, only a real reading can say another one is wrong
 const checkChronology = async (vehicleId, serviceDate, odometerKm, skipId) => {
-  const query = { vehicle: vehicleId };
+  const query = { vehicle: vehicleId, odometerEstimated: { $ne: true } };
   if (skipId) query._id = { $ne: skipId };
 
   const earlier = await ServiceRecord.findOne({ ...query, serviceDate: { $lte: serviceDate }, odometerKm: { $gt: odometerKm } })
@@ -111,6 +117,7 @@ const pickFields = (body) => {
     }
   });
   if (data.cost === "") data.cost = undefined;
+  if (isBlank(data.odometerKm)) delete data.odometerKm;
   return data;
 };
 
@@ -138,33 +145,41 @@ const createService = async (req, res) => {
 
   const data = pickFields(body);
   data.serviceDate = new Date(data.serviceDate);
-  data.odometerKm = Number(data.odometerKm);
+  const estimated = isBlank(body.odometerKm);
 
   //cant be serviced before the car was made
   if (data.serviceDate.getUTCFullYear() < vehicle.year) {
     return res.status(422).json({ message: "validation failed", errors: { serviceDate: "service date is before the vehicle was made" } });
   }
 
-  const conflict = await checkChronology(vehicle._id, data.serviceDate, data.odometerKm);
-  if (conflict) {
-    return res.status(422).json(chronologyError(conflict));
-  }
+  if (estimated) {
+    //no reading given, so it is worked out from the date and the checks below have nothing to compare
+    data.odometerKm = (await odometerRange(vehicle, data.serviceDate)).estimate;
+    data.odometerEstimated = true;
+  } else {
+    data.odometerKm = Number(data.odometerKm);
 
-  //also compare with the vehicles own reading, the odometer cant go backwards here either
-  //compared by day so a service on the same day as the reading is always fine
-  const readingDate = vehicle.odometerDate.toISOString().slice(0, 10);
-  const serviceDay = data.serviceDate.toISOString().slice(0, 10);
-  if (serviceDay < readingDate && data.odometerKm > vehicle.odometerKm) {
-    return res.status(422).json({
-      message: "validation failed",
-      errors: { odometerKm: "the vehicle had " + vehicle.odometerKm + " km on " + readingDate + ", an earlier service cant have more" },
-    });
-  }
-  if (serviceDay > readingDate && data.odometerKm < vehicle.odometerKm) {
-    return res.status(422).json({
-      message: "validation failed",
-      errors: { odometerKm: "the vehicle already had " + vehicle.odometerKm + " km on " + readingDate + ", a later service cant have less" },
-    });
+    const conflict = await checkChronology(vehicle._id, data.serviceDate, data.odometerKm);
+    if (conflict) {
+      return res.status(422).json(chronologyError(conflict));
+    }
+
+    //also compare with the vehicles own reading, the odometer cant go backwards here either
+    //compared by day so a service on the same day as the reading is always fine
+    const readingDate = vehicle.odometerDate.toISOString().slice(0, 10);
+    const serviceDay = data.serviceDate.toISOString().slice(0, 10);
+    if (serviceDay < readingDate && data.odometerKm > vehicle.odometerKm) {
+      return res.status(422).json({
+        message: "validation failed",
+        errors: { odometerKm: "the vehicle had " + vehicle.odometerKm + " km on " + readingDate + ", an earlier service cant have more" },
+      });
+    }
+    if (serviceDay > readingDate && data.odometerKm < vehicle.odometerKm) {
+      return res.status(422).json({
+        message: "validation failed",
+        errors: { odometerKm: "the vehicle already had " + vehicle.odometerKm + " km on " + readingDate + ", a later service cant have less" },
+      });
+    }
   }
 
   data.owner = req.userId;
@@ -177,6 +192,24 @@ const createService = async (req, res) => {
   const warning = await saveReceipt(record, req.file);
   await record.populate("item", "name category");
   res.status(201).json({ record, due, warning });
+};
+
+//the page shows this under the odometer field for the date the user picked
+const getOdometerRange = async (req, res) => {
+  if (!isValidId(req.query.vehicle)) {
+    return res.status(422).json({ message: "validation failed", errors: { vehicle: "choose a vehicle" } });
+  }
+  const date = new Date(req.query.date);
+  if (isNaN(date.getTime()) || date > new Date()) {
+    return res.status(422).json({ message: "validation failed", errors: { date: "enter a valid date that is not in the future" } });
+  }
+
+  const vehicle = await Vehicle.findOne({ _id: req.query.vehicle, owner: req.userId });
+  if (!vehicle) {
+    return res.status(404).json({ message: "vehicle not found" });
+  }
+
+  res.json(await odometerRange(vehicle, date));
 };
 
 //history with search, filters, sort and pagination, all done in the database
@@ -248,19 +281,31 @@ const updateService = async (req, res) => {
 
   const data = pickFields(body);
   if (data.serviceDate !== undefined) data.serviceDate = new Date(data.serviceDate);
-  if (data.odometerKm !== undefined) data.odometerKm = Number(data.odometerKm);
 
   const newDate = data.serviceDate || record.serviceDate;
-  const newKm = data.odometerKm !== undefined ? data.odometerKm : record.odometerKm;
-
   const vehicle = await Vehicle.findById(record.vehicle);
   if (vehicle && newDate.getUTCFullYear() < vehicle.year) {
     return res.status(422).json({ message: "validation failed", errors: { serviceDate: "service date is before the vehicle was made" } });
   }
 
-  const conflict = await checkChronology(record.vehicle, newDate, newKm, record._id);
-  if (conflict) {
-    return res.status(422).json(chronologyError(conflict));
+  //a reading that was typed is real, a blank one or a guess whose date moved is worked out again
+  const wantsGuess = body.odometerKm !== undefined && isBlank(body.odometerKm);
+  if (data.odometerKm !== undefined) {
+    data.odometerKm = Number(data.odometerKm);
+    data.odometerEstimated = false;
+  } else if (vehicle && (wantsGuess || (record.odometerEstimated && data.serviceDate !== undefined))) {
+    data.odometerKm = (await odometerRange(vehicle, newDate, record._id)).estimate;
+    data.odometerEstimated = true;
+  }
+
+  //a guess has nothing to be compared with
+  const isReal = data.odometerEstimated !== undefined ? !data.odometerEstimated : !record.odometerEstimated;
+  if (isReal) {
+    const newKm = data.odometerKm !== undefined ? data.odometerKm : record.odometerKm;
+    const conflict = await checkChronology(record.vehicle, newDate, newKm, record._id);
+    if (conflict) {
+      return res.status(422).json(chronologyError(conflict));
+    }
   }
 
   Object.assign(record, data);
@@ -287,4 +332,4 @@ const deleteService = async (req, res) => {
   res.json({ message: "service record deleted", due });
 };
 
-module.exports = { createService, getServices, updateService, deleteService };
+module.exports = { createService, getServices, getOdometerRange, updateService, deleteService };

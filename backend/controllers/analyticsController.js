@@ -38,8 +38,9 @@ const getAnalytics = async (req, res) => {
         _id: "$vehicle",
         cost: { $sum: { $ifNull: ["$cost", 0] } },
         count: { $sum: 1 },
-        minKm: { $min: "$odometerKm" },
-        maxKm: { $max: "$odometerKm" },
+        //guessed readings are skipped, they would make the km driven look more exact than it is
+        minKm: { $min: { $cond: [{ $eq: ["$odometerEstimated", true] }, null, "$odometerKm"] } },
+        maxKm: { $max: { $cond: [{ $eq: ["$odometerEstimated", true] }, null, "$odometerKm"] } },
       },
     },
   ]);
@@ -50,7 +51,7 @@ const getAnalytics = async (req, res) => {
   perVehicle.forEach((v) => {
     totalCost += v.cost;
     serviceCount += v.count;
-    distanceKm += v.maxKm - v.minKm;
+    if (v.maxKm != null && v.minKm != null) distanceKm += v.maxKm - v.minKm;
   });
 
   //need at least two readings far apart, otherwise cost per km means nothing

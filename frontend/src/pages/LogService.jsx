@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import api, { readError } from '../api'
 import { validateService } from '../validate'
-import { formatDate, itemFits, vehicleName } from '../format'
+import { formatDate, formatKm, itemFits, vehicleName } from '../format'
 import ErrorNote from '../components/ErrorNote'
 import Field from '../components/Field'
 import Loading from '../components/Loading'
@@ -49,6 +49,10 @@ function LogService() {
   const [formError, setFormError] = useState('')
   const [saving, setSaving] = useState(false)
 
+  //what the odometer can have been on the picked date, remembers which date it is for
+  const [range, setRange] = useState(null)
+  const pickedDate = form ? form.serviceDate : ''
+
   useEffect(() => {
     let cancelled = false
 
@@ -61,11 +65,11 @@ function LogService() {
         const items = c.data.items.filter((i) => itemFits(i, vehicle.powertrain))
         setData({ id, vehicle, projection, items })
 
-        //the km field starts with the estimate, the user confirms or corrects it
+        //the km field starts empty, the range under it helps and an empty one is estimated from the date
         setForm({
           item: itemParam,
           serviceDate: today(),
-          odometerKm: String(projection.projectedKm ?? vehicle.odometerKm),
+          odometerKm: '',
           cost: '',
           workshop: '',
           notes: '',
@@ -80,6 +84,25 @@ function LogService() {
       cancelled = true
     }
   }, [id, itemParam])
+
+  useEffect(() => {
+    if (!pickedDate) return
+    let cancelled = false
+
+    api
+      .get('/services/odometer-range', { params: { vehicle: id, date: pickedDate } })
+      .then((res) => {
+        if (!cancelled) setRange({ key: id + '|' + pickedDate, ...res.data })
+      })
+      .catch(() => {
+        //the hint is only a help, the form works without it
+        if (!cancelled) setRange({ key: id + '|' + pickedDate, none: true })
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [id, pickedDate])
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -98,7 +121,7 @@ function LogService() {
     body.append('vehicle', id)
     body.append('item', form.item)
     body.append('serviceDate', form.serviceDate)
-    body.append('odometerKm', form.odometerKm)
+    if (form.odometerKm !== '') body.append('odometerKm', form.odometerKm)
     if (form.cost !== '') body.append('cost', form.cost)
     if (form.workshop.trim() !== '') body.append('workshop', form.workshop.trim())
     if (form.notes.trim() !== '') body.append('notes', form.notes.trim())
@@ -112,6 +135,7 @@ function LogService() {
 
       //the vehicle page shows this message
       let notice = itemName + ' logged.'
+      if (res.data.record.odometerEstimated) notice += ' Odometer estimated at about ' + formatKm(res.data.record.odometerKm) + '.'
       if (due && due.dueDate) notice += ' Next due ' + formatDate(due.dueDate) + '.'
 
       navigate('/vehicles/' + id, { state: { notice, warning: res.data.warning } })
@@ -142,6 +166,8 @@ function LogService() {
   )
 
   const picked = data.items.find((i) => i._id === form.item)
+  //the range only counts if it was asked for the date that is picked now
+  const shownRange = range && range.key === id + '|' + pickedDate && !range.none ? range : null
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-12">
@@ -190,18 +216,19 @@ function LogService() {
               error={errors.serviceDate}
             />
             <Field
-              label="Odometer (km)"
+              label="Odometer (km, optional)"
               id="odometerKm"
               name="odometerKm"
               type="number"
               inputMode="numeric"
+              placeholder={shownRange ? shownRange.from.toLocaleString('en-US') + ' - ' + shownRange.to.toLocaleString('en-US') : ''}
               value={form.odometerKm}
               onChange={handleChange}
               error={errors.odometerKm}
               hint={
-                data.projection.projectedKm === null
-                  ? 'The reading at the time of the service.'
-                  : 'Our estimate. Correct it if your odometer shows something else, this keeps predictions accurate.'
+                (shownRange
+                  ? 'For this date it was between ' + shownRange.from.toLocaleString('en-US') + ' and ' + shownRange.to.toLocaleString('en-US') + ' km. '
+                  : '') + 'Dont remember it? Leave it empty and we will estimate it from the date.'
               }
             />
           </div>

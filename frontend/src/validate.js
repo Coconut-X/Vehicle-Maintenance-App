@@ -90,9 +90,12 @@ export const validateService = (form, receipt) => {
     errors.serviceDate = 'The date cannot be in the future.'
   }
 
-  const km = Number(form.odometerKm)
-  if (form.odometerKm === '' || !Number.isInteger(km) || km < 0 || km > 2000000) {
-    errors.odometerKm = 'Enter a whole number from 0 to 2,000,000.'
+  //optional, an empty reading is estimated from the date by the server
+  if (form.odometerKm !== '') {
+    const km = Number(form.odometerKm)
+    if (!Number.isInteger(km) || km < 0 || km > 2000000) {
+      errors.odometerKm = 'Enter a whole number from 0 to 2,000,000, or leave it empty.'
+    }
   }
 
   if (form.cost !== '') {

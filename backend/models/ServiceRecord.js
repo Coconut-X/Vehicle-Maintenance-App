@@ -32,6 +32,10 @@ const serviceRecordSchema = new mongoose.Schema(
       min: 0,
       max: 2000000,
     },
+    //true when the user didnt know the reading and we worked it out from the date
+    odometerEstimated: {
+      type: Boolean,
+    },
     workshop: {
       type: String,
       trim: true,
