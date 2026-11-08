@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { CURRENCIES } = require("../utils/currencies");
 
 const userSchema = new mongoose.Schema(
   {
@@ -49,6 +50,12 @@ const userSchema = new mongoose.Schema(
     resetSentAt: {
       type: Date,
       select: false,
+    },
+    //only a label for the costs, amounts are never converted when it changes
+    currency: {
+      type: String,
+      enum: CURRENCIES,
+      default: "PKR",
     },
     //vehicle ids in the order the user arranged them, shown that way on the dashboard and in the garage
     vehicleOrder: {

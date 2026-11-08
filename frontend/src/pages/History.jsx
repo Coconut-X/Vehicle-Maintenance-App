@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { useSelector } from 'react-redux'
 import api, { readError } from '../api'
 import { formatDate, formatKm, formatMoney, vehicleName } from '../format'
 import ConfirmBox from '../components/ConfirmBox'
@@ -88,6 +89,7 @@ function Receipt({ url }) {
 
 function History() {
   const [searchParams] = useSearchParams()
+  const currency = useSelector((state) => state.auth.user?.currency)
 
   //filters
   const [vehicleId, setVehicleId] = useState(searchParams.get('vehicle') || '')
@@ -293,7 +295,7 @@ function History() {
                     <dl className="mt-4 grid max-w-md grid-cols-3 gap-4">
                       <BookField label="date" value={formatDate(r.serviceDate)} />
                       <BookField label="odometer" value={(r.odometerEstimated ? '~' : '') + formatKm(r.odometerKm)} />
-                      <BookField label="cost" value={r.cost !== undefined && r.cost !== null ? formatMoney(r.cost) : '-'} />
+                      <BookField label="cost" value={r.cost !== undefined && r.cost !== null ? formatMoney(r.cost, currency) : '-'} />
                     </dl>
                     {r.notes && (
                       <p className="mt-4 max-w-md text-sm italic text-[#4a4433]">

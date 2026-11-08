@@ -29,10 +29,33 @@ export const kmLeftText = (km) => {
   return formatKm(km) + ' left'
 }
 
-//cost without a currency symbol, up to 2 decimals
-export const formatMoney = (amount) => {
+//currencies to pick from, same codes as the backend, only a label for the costs
+export const currencies = [
+  { value: 'PKR', label: 'PKR - Pakistani rupee' },
+  { value: 'USD', label: 'USD - US dollar' },
+  { value: 'EUR', label: 'EUR - Euro' },
+  { value: 'GBP', label: 'GBP - British pound' },
+  { value: 'AED', label: 'AED - UAE dirham' },
+  { value: 'SAR', label: 'SAR - Saudi riyal' },
+  { value: 'QAR', label: 'QAR - Qatari riyal' },
+  { value: 'KWD', label: 'KWD - Kuwaiti dinar' },
+  { value: 'OMR', label: 'OMR - Omani rial' },
+  { value: 'BHD', label: 'BHD - Bahraini dinar' },
+  { value: 'INR', label: 'INR - Indian rupee' },
+  { value: 'BDT', label: 'BDT - Bangladeshi taka' },
+  { value: 'CAD', label: 'CAD - Canadian dollar' },
+  { value: 'AUD', label: 'AUD - Australian dollar' },
+  { value: 'CNY', label: 'CNY - Chinese yuan' },
+  { value: 'TRY', label: 'TRY - Turkish lira' },
+  { value: 'MYR', label: 'MYR - Malaysian ringgit' },
+  { value: 'SGD', label: 'SGD - Singapore dollar' },
+]
+
+//cost with the currency code in front when there is one, up to 2 decimals
+export const formatMoney = (amount, currency) => {
   if (amount === null || amount === undefined) return '-'
-  return Number(amount).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+  const number = Number(amount).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+  return currency ? currency + ' ' + number : number
 }
 
 //short and long names for the powertrain choices

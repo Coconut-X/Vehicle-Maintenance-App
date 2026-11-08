@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useSelector } from 'react-redux'
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import api, { readError } from '../api'
 import { formatKm, formatMoney, vehicleName } from '../format'
@@ -39,20 +40,21 @@ function CostGauge({ part }) {
 }
 
 //small box shown when hovering a bar
-function ChartTip({ active, payload }) {
+function ChartTip({ active, payload, currency }) {
   if (!active || !payload || !payload.length) return null
   const row = payload[0].payload
   return (
     <div className="border border-ink bg-card px-3 py-2 font-mono text-xs">
       <p>{row.month}</p>
       <p className="mt-0.5">
-        {formatMoney(row.cost)} / {row.count} {row.count === 1 ? 'service' : 'services'}
+        {formatMoney(row.cost, currency)} / {row.count} {row.count === 1 ? 'service' : 'services'}
       </p>
     </div>
   )
 }
 
 function Analytics() {
+  const currency = useSelector((state) => state.auth.user?.currency)
   const [vehicleId, setVehicleId] = useState('')
   const [vehicles, setVehicles] = useState([])
   const [result, setResult] = useState(null)
@@ -140,16 +142,16 @@ function Analytics() {
               trip computer
             </p>
             <div className="grid grid-cols-1 gap-px bg-white/10 sm:grid-cols-3">
-              <Stat label="total spent" value={formatMoney(data.totalCost)} note={data.serviceCount + ' services logged'} />
+              <Stat label="total spent" value={formatMoney(data.totalCost, currency)} note={data.serviceCount + ' services logged'} />
               <Stat
                 label="cost per km"
-                value={data.costPerKm === null ? '-' : formatMoney(data.costPerKm)}
+                value={data.costPerKm === null ? '-' : formatMoney(data.costPerKm, currency)}
                 note={data.costPerKm === null ? 'needs two services at different km' : 'over ' + formatKm(data.distanceKm)}
               />
               <Stat
                 label="top category"
                 value={data.byCategory.length ? data.byCategory[0].category : '-'}
-                note={data.byCategory.length ? formatMoney(data.byCategory[0].cost) : ''}
+                note={data.byCategory.length ? formatMoney(data.byCategory[0].cost, currency) : ''}
               />
             </div>
           </div>
@@ -175,7 +177,7 @@ function Analytics() {
                     axisLine={false}
                     tickFormatter={(v) => formatMoney(v)}
                   />
-                  <Tooltip content={<ChartTip />} cursor={{ fill: '#fafaf8' }} />
+                  <Tooltip content={<ChartTip currency={currency} />} cursor={{ fill: '#fafaf8' }} />
                   <Bar dataKey="cost" fill="#f26522" maxBarSize={32} isAnimationActive={false} />
                 </BarChart>
               </ResponsiveContainer>
@@ -192,7 +194,7 @@ function Analytics() {
                     {c.category}
                   </p>
                   <p className="font-mono text-sm">
-                    {formatMoney(c.cost)}
+                    {formatMoney(c.cost, currency)}
                     <span className="ml-2 text-xs text-muted">
                       {c.count} {c.count === 1 ? 'service' : 'services'}
                     </span>

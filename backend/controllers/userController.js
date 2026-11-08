@@ -6,6 +6,7 @@ const ServiceRecord = require("../models/ServiceRecord");
 const ReminderLog = require("../models/ReminderLog");
 const { deleteImage } = require("../config/cloudinary");
 const { cleanUser } = require("./authController");
+const { CURRENCIES } = require("../utils/currencies");
 
 const passwordOk = (p) => typeof p === "string" && p.length >= 8 && /[a-zA-Z]/.test(p) && /[0-9]/.test(p);
 
@@ -27,6 +28,13 @@ const updateMe = async (req, res) => {
       errors.remindersEnabled = "reminders must be true or false";
     } else {
       data.remindersEnabled = body.remindersEnabled;
+    }
+  }
+  if (body.currency !== undefined) {
+    if (!CURRENCIES.includes(body.currency)) {
+      errors.currency = "choose one of the listed currencies";
+    } else {
+      data.currency = body.currency;
     }
   }
   if (body.defaultMonthlyKm !== undefined) {

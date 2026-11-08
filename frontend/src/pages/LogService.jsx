@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import api, { readError } from '../api'
 import { validateService } from '../validate'
 import { formatDate, formatKm, itemFits, vehicleName } from '../format'
+import { useSelector } from 'react-redux'
 import ErrorNote from '../components/ErrorNote'
 import Field from '../components/Field'
 import Loading from '../components/Loading'
@@ -40,6 +41,7 @@ function LogService() {
   const [searchParams] = useSearchParams()
   const itemParam = searchParams.get('item') || ''
   const navigate = useNavigate()
+  const currency = useSelector((state) => state.auth.user?.currency) || 'PKR'
 
   //data remembers which vehicle it belongs to, so loading is just a mismatch
   const [data, setData] = useState(null)
@@ -237,7 +239,7 @@ function LogService() {
         <Section no="03" title="bill">
           <div className="grid gap-5 sm:grid-cols-2">
             <Field
-              label="Cost (optional)"
+              label={'Cost (' + currency + ', optional)'}
               id="cost"
               name="cost"
               type="number"

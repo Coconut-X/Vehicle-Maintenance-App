@@ -4,6 +4,7 @@ const User = require("../models/User");
 const { sendMail } = require("../utils/mailer");
 const { makeEmailToken, hashToken, appUrl } = require("../utils/emailToken");
 const { linkEmail } = require("../utils/emailTemplates");
+const { CURRENCIES } = require("../utils/currencies");
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -21,6 +22,7 @@ const cleanUser = (user) => {
     email: user.email,
     remindersEnabled: user.remindersEnabled,
     defaultMonthlyKm: user.defaultMonthlyKm,
+    currency: user.currency,
   };
 };
 
@@ -65,7 +67,7 @@ const sendVerification = async (user) => {
 
 const register = async (req, res) => {
   const body = req.body || {}; //body is undefined if nothing was sent
-  const { name, password, defaultMonthlyKm } = body;
+  const { name, password, defaultMonthlyKm, currency } = body;
   const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
   const errors = {};
 
@@ -83,6 +85,10 @@ const register = async (req, res) => {
     if (!Number.isInteger(km) || km < 0 || km > 20000) {
       errors.defaultMonthlyKm = "monthly km must be a whole number from 0 to 20000";
     }
+  }
+
+  if (currency !== undefined && !CURRENCIES.includes(currency)) {
+    errors.currency = "choose one of the listed currencies";
   }
 
   if (Object.keys(errors).length > 0) {
@@ -104,8 +110,9 @@ const register = async (req, res) => {
     user.name = name.trim();
     user.passwordHash = passwordHash;
     user.defaultMonthlyKm = monthlyKm;
+    if (currency) user.currency = currency;
   } else {
-    user = new User({ name: name.trim(), email, passwordHash, defaultMonthlyKm: monthlyKm, emailVerified: false });
+    user = new User({ name: name.trim(), email, passwordHash, defaultMonthlyKm: monthlyKm, currency, emailVerified: false });
   }
 
   //no token yet, the user has to open the link in the email first

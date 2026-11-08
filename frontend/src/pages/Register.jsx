@@ -5,12 +5,14 @@ import api, { readError } from '../api'
 import { loginSuccess } from '../store/authSlice'
 import { validateRegister } from '../validate'
 import Field from '../components/Field'
+import Select from '../components/Select'
+import { currencies } from '../format'
 import AuthLayout from '../components/AuthLayout'
 import useCooldown from '../useCooldown'
 import { btnOutline, btnPrimary, labelClass } from '../components/ui'
 
 function Register() {
-  const [form, setForm] = useState({ name: '', email: '', password: '', defaultMonthlyKm: '' })
+  const [form, setForm] = useState({ name: '', email: '', password: '', defaultMonthlyKm: '', currency: 'PKR' })
   const [errors, setErrors] = useState({})
   const [formError, setFormError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -79,7 +81,7 @@ function Register() {
     setErrors(found)
     if (Object.keys(found).length > 0) return
 
-    const body = { name: form.name.trim(), email: form.email.trim(), password: form.password }
+    const body = { name: form.name.trim(), email: form.email.trim(), password: form.password, currency: form.currency }
     if (form.defaultMonthlyKm !== '') body.defaultMonthlyKm = Number(form.defaultMonthlyKm)
 
     setLoading(true)
@@ -210,6 +212,7 @@ function Register() {
             error={errors.password}
             hint="At least 8 characters, with a letter and a number."
           />
+          <Select label="Your currency" id="currency" name="currency" value={form.currency} onChange={handleChange} options={currencies} />
           <Field
             label="Km you drive per month (optional)"
             id="defaultMonthlyKm"

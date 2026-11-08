@@ -4,6 +4,8 @@ import api, { readError } from '../api'
 import { logout, setUser } from '../store/authSlice'
 import ErrorNote from '../components/ErrorNote'
 import Field from '../components/Field'
+import Select from '../components/Select'
+import { currencies } from '../format'
 import { btnOutline, btnPrimary, labelClass } from '../components/ui'
 
 //same rules as the backend
@@ -46,6 +48,7 @@ function DetailsForm({ user }) {
   const [form, setForm] = useState({
     name: user.name || '',
     defaultMonthlyKm: user.defaultMonthlyKm == null ? '' : String(user.defaultMonthlyKm),
+    currency: user.currency || 'PKR',
     remindersEnabled: user.remindersEnabled !== false,
   })
   const [errors, setErrors] = useState({})
@@ -71,6 +74,7 @@ function DetailsForm({ user }) {
       const res = await api.put('/users/me', {
         name: form.name.trim(),
         defaultMonthlyKm: form.defaultMonthlyKm,
+        currency: form.currency,
         remindersEnabled: form.remindersEnabled,
       })
       dispatch(setUser(res.data.user))
@@ -101,6 +105,10 @@ function DetailsForm({ user }) {
         error={errors.defaultMonthlyKm}
         hint="Your usual km per month. Leave empty to remove it."
       />
+      <div>
+        <Select label="currency" id="currency" name="currency" value={form.currency} onChange={change} options={currencies} />
+        <p className="mt-1 text-xs text-muted">Only the label on your costs. Changing it does not convert amounts you already saved.</p>
+      </div>
       <label className="flex items-start gap-3 border border-line bg-card px-3 py-3">
         <input
           type="checkbox"
