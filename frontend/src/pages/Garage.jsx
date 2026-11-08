@@ -8,6 +8,7 @@ import Select from '../components/Select'
 import Plate from '../components/Plate'
 import Pagination from '../components/Pagination'
 import CarArt from '../components/CarArt'
+import ArrangeCars from '../components/ArrangeCars'
 import { btnOutline, btnPrimary, labelClass } from '../components/ui'
 
 const statusOptions = [
@@ -19,7 +20,8 @@ const statusOptions = [
 ]
 
 const sortOptions = [
-  { value: '', label: 'Newest first' },
+  { value: '', label: 'My order' },
+  { value: 'newest', label: 'Newest first' },
   { value: 'urgency', label: 'Most urgent' },
   { value: 'name', label: 'Name' },
   { value: 'year', label: 'Year' },
@@ -121,12 +123,15 @@ function Garage() {
   const [status, setStatus] = useState('')
   const [sort, setSort] = useState('')
   const [page, setPage] = useState(1)
+  const [arranging, setArranging] = useState(false)
+  //counts up after arranging so the list is loaded again
+  const [reload, setReload] = useState(0)
 
   //result remembers which filters it was loaded for, so loading is just a mismatch
   const [result, setResult] = useState(null)
   const [error, setError] = useState('')
 
-  const key = [search, status, sort, page].join('|')
+  const key = [search, status, sort, page, reload].join('|')
   const loading = !result || result.key !== key
   const data = result ? result.data : null
 
@@ -159,7 +164,7 @@ function Garage() {
     return () => {
       cancelled = true
     }
-  }, [search, status, sort, page, key])
+  }, [search, status, sort, page, reload, key])
 
   const changeFilter = (setter) => (e) => {
     setter(e.target.value)
@@ -176,10 +181,26 @@ function Garage() {
           <p className={labelClass}>garage</p>
           <h1 className="mt-3 text-3xl font-semibold tracking-tight">Your vehicles</h1>
         </div>
-        <Link to="/vehicles/new" className={btnPrimary}>
-          Add vehicle
-        </Link>
+        <div className="flex flex-wrap gap-3">
+          {data && data.total > 1 && !arranging && (
+            <button onClick={() => setArranging(true)} className={btnOutline}>
+              Arrange
+            </button>
+          )}
+          <Link to="/vehicles/new" className={btnPrimary}>
+            Add vehicle
+          </Link>
+        </div>
       </div>
+
+      {arranging && (
+        <ArrangeCars
+          onDone={() => {
+            setArranging(false)
+            setReload((r) => r + 1)
+          }}
+        />
+      )}
 
       <div className="mt-8 grid gap-4 sm:grid-cols-3">
         <Field

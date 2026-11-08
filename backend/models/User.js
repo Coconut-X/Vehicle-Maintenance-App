@@ -50,6 +50,11 @@ const userSchema = new mongoose.Schema(
       type: Date,
       select: false,
     },
+    //vehicle ids in the order the user arranged them, shown that way on the dashboard and in the garage
+    vehicleOrder: {
+      type: [{ type: mongoose.Schema.Types.ObjectId }],
+      default: [],
+    },
     remindersEnabled: {
       type: Boolean,
       default: true,

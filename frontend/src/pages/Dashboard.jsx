@@ -10,8 +10,9 @@ import Telltale from '../components/Telltale'
 import Plate from '../components/Plate'
 import CarArt from '../components/CarArt'
 import PartGauge from '../components/PartGauge'
+import ArrangeCars from '../components/ArrangeCars'
 import { buildSystems } from '../wear'
-import { btnPrimary, labelClass } from '../components/ui'
+import { btnOutline, btnPrimary, labelClass } from '../components/ui'
 
 //one readout in the dark instrument strip, the number lights up only when it matters
 function Total({ label, value, tone }) {
@@ -76,6 +77,9 @@ function Dashboard() {
   const user = useSelector((state) => state.auth.user)
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
+  const [arranging, setArranging] = useState(false)
+  //counts up after arranging so the cars are loaded again in the new order
+  const [reload, setReload] = useState(0)
 
   useEffect(() => {
     let cancelled = false
@@ -92,7 +96,7 @@ function Dashboard() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [reload])
 
   const noVehicles = data && data.vehicles.length === 0
 
@@ -128,7 +132,22 @@ function Dashboard() {
             <Total label="up to date" value={data.totals.up_to_date} tone="text-lamp-green" />
           </div>
 
-          <h2 className="mt-12 font-semibold tracking-tight">Your vehicles</h2>
+          <div className="mt-12 flex items-center justify-between gap-4">
+            <h2 className="font-semibold tracking-tight">Your vehicles</h2>
+            {data.vehicles.length > 1 && !arranging && (
+              <button onClick={() => setArranging(true)} className={btnOutline + ' !py-1.5'}>
+                Arrange
+              </button>
+            )}
+          </div>
+          {arranging && (
+            <ArrangeCars
+              onDone={() => {
+                setArranging(false)
+                setReload((r) => r + 1)
+              }}
+            />
+          )}
           <ul className="mt-3 grid gap-4 md:grid-cols-2">
             {data.vehicles.map((v) => (
               <VehicleCard key={v._id} vehicle={v} />

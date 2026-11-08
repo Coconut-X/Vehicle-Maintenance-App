@@ -1,10 +1,14 @@
 const Vehicle = require("../models/Vehicle");
 const ScheduleEntry = require("../models/ScheduleEntry");
+const User = require("../models/User");
 const { evaluateVehicle } = require("../utils/vehicleStatus");
+const { orderVehicles } = require("../utils/vehicleOrder");
 
 //status of every vehicle plus a list of overdue and due soon items across the garage
 const getDashboard = async (req, res) => {
-  const vehicles = await Vehicle.find({ owner: req.userId }).sort({ createdAt: -1 });
+  //newest first, then moved into the order the user arranged
+  const user = await User.findById(req.userId).select("vehicleOrder");
+  const vehicles = orderVehicles(await Vehicle.find({ owner: req.userId }).sort({ createdAt: -1 }), user ? user.vehicleOrder : []);
   const entries = await ScheduleEntry.find({ owner: req.userId, enabled: true }).populate("item", "name category");
 
   //group entries by vehicle so each vehicle only looks at its own items

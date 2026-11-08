@@ -2,6 +2,7 @@ const express = require("express");
 const {
   createVehicle,
   getVehicles,
+  setOrder,
   getVehicle,
   getSchedule,
   updateVehicle,
@@ -17,6 +18,8 @@ router.use(protect);
 
 router.get("/", getVehicles);
 router.post("/", uploadPhoto, createVehicle);
+//before the routes with an id, otherwise "order" would be read as an id
+router.put("/order", setOrder);
 router.get("/:id", getVehicle);
 router.get("/:id/schedule", getSchedule);
 router.put("/:id", uploadPhoto, updateVehicle);

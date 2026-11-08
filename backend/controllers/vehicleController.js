@@ -9,7 +9,8 @@ const { projectionInfo } = require("../utils/projection");
 const { calcDue } = require("../utils/dueDate");
 const { getStatus, worstStatus } = require("../utils/status");
 const { evaluateVehicle } = require("../utils/vehicleStatus");
-const { initialBaseline } = require("../utils/initialBaseline");
+const { newEntry } = require("../utils/newEntry");
+const { orderVehicles } = require("../utils/vehicleOrder");
 const { getString, getPaging, escapeRegex, pageInfo } = require("../utils/listQuery");
 const { POWERTRAINS } = require("../seed/catalogue");
 
@@ -96,22 +97,6 @@ const savePhoto = async (vehicle, file) => {
   }
 };
 
-//last done is not known yet, see initialBaseline for how it is guessed
-const newEntry = (vehicle, item) => {
-  const { baselineKm, baselineDate } = initialBaseline(vehicle, item.defaultIntervalKm);
-  return {
-    owner: vehicle.owner,
-    vehicle: vehicle._id,
-    item: item._id,
-    intervalKm: item.defaultIntervalKm,
-    intervalMonths: item.defaultIntervalMonths,
-    enabled: item.appliesTo(vehicle.powertrain),
-    baselineDate,
-    baselineKm,
-    baselineSource: "initial",
-  };
-};
-
 //after the powertrain changes turn items on or off to match, and add items the car never had
 //only items whose fit changed are touched, so wipers turned off by hand stay off
 const syncPowertrain = async (vehicle, oldPowertrain) => {
@@ -170,6 +155,22 @@ const createVehicle = async (req, res) => {
 //search, status filter, sort and pagination
 //status is worked out in code not stored, so filtering and urgency sort happen after the query
 //fine for a personal garage of a few vehicles
+//the user arranges the cars once and the order stays, it is saved on the user so it follows them to any device
+const setOrder = async (req, res) => {
+  const ids = req.body && Array.isArray(req.body.order) ? req.body.order : null;
+  if (!ids || ids.length > 200 || ids.some((id) => typeof id !== "string" || !/^[a-f0-9]{24}$/i.test(id))) {
+    return res.status(422).json({ message: "validation failed", errors: { order: "send a list of vehicle ids" } });
+  }
+
+  //only the users own vehicles count, anything else is dropped
+  const own = await Vehicle.find({ owner: req.userId, _id: { $in: ids } }).select("_id");
+  const ownIds = new Set(own.map((v) => v._id.toString()));
+  const clean = [...new Set(ids.filter((id) => ownIds.has(id)))];
+
+  await User.updateOne({ _id: req.userId }, { vehicleOrder: clean });
+  res.json({ order: clean });
+};
+
 const getVehicles = async (req, res) => {
   const { page, limit, skip } = getPaging(req.query);
   const search = getString(req.query.search);
@@ -204,7 +205,7 @@ const getVehicles = async (req, res) => {
     list = list.filter((v) => v.summary === status);
   }
 
-  //unknown sort keys just keep the default newest first
+  //no sort picked means the order the user arranged, "newest" is the plain newest first
   if (sort === "name") {
     list.sort((a, b) => (a.make + " " + a.model).localeCompare(b.make + " " + b.model));
   } else if (sort === "year") {
@@ -212,6 +213,9 @@ const getVehicles = async (req, res) => {
   } else if (sort === "urgency") {
     //vehicles with no due dates go last
     list.sort((a, b) => (a.minDays == null ? Infinity : a.minDays) - (b.minDays == null ? Infinity : b.minDays));
+  } else if (sort !== "newest") {
+    const user = await User.findById(req.userId).select("vehicleOrder");
+    list = orderVehicles(list, user ? user.vehicleOrder : []);
   }
 
   const total = list.length;
@@ -317,4 +321,4 @@ const deleteVehicle = async (req, res) => {
   res.json({ message: "vehicle deleted" });
 };
 
-module.exports = { createVehicle, getVehicles, getVehicle, getSchedule, updateVehicle, deleteVehicle };
+module.exports = { createVehicle, getVehicles, setOrder, getVehicle, getSchedule, updateVehicle, deleteVehicle };
