@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import api, { readError } from '../api'
 import { daysText, formatDate, kmLeftText, formatKm } from '../format'
 import Field from './Field'
@@ -156,6 +156,7 @@ function EntryEditor({ entry, onSaved, onCancel }) {
 }
 
 function ScheduleTable({ entries, vehicle, onChanged }) {
+  const navigate = useNavigate()
   const [editingId, setEditingId] = useState(null)
   const [busyId, setBusyId] = useState(null)
   const [error, setError] = useState('')
@@ -170,6 +171,16 @@ function ScheduleTable({ entries, vehicle, onChanged }) {
       setError(readError(err).message)
     }
     setBusyId(null)
+  }
+
+  //only an item with a logged service has a history to open
+  const historyLink = (entry) => '/history?vehicle=' + vehicle._id + '&item=' + entry.item._id
+
+  //a click on the card opens its history, the buttons and links inside keep doing their own thing
+  const openHistory = (e, entry) => {
+    if (entry.baselineSource !== 'service') return
+    if (e.target.closest('a, button, input, form, label')) return
+    navigate(historyLink(entry))
   }
 
   const saved = async () => {
@@ -187,11 +198,27 @@ function ScheduleTable({ entries, vehicle, onChanged }) {
       <ul className="border border-line bg-card">
         {sortEntries(entries).map((entry) => (
           <li key={entry._id} className="border-b border-line last:border-b-0">
-            <div className="flex flex-col gap-3 px-4 py-3 md:flex-row md:items-center">
+            <div
+              onClick={(e) => openHistory(e, entry)}
+              className={
+                'flex flex-col gap-3 px-4 py-3 md:flex-row md:items-center ' +
+                (entry.baselineSource === 'service' ? 'cursor-pointer transition-colors hover:bg-paper' : '')
+              }
+            >
               <div className="flex items-center gap-3 md:w-1/3">
                 <Telltale name={entry.item.name} category={entry.item.category} status={entry.status} />
                 <div className="min-w-0">
-                  <p className={'text-sm font-medium ' + (entry.enabled ? '' : 'text-muted')}>{entry.item.name}</p>
+                  {entry.baselineSource === 'service' ? (
+                    <Link
+                      to={historyLink(entry)}
+                      title="Open the history of this item"
+                      className={'text-sm font-medium underline-offset-4 hover:underline ' + (entry.enabled ? '' : 'text-muted')}
+                    >
+                      {entry.item.name}
+                    </Link>
+                  ) : (
+                    <p className={'text-sm font-medium ' + (entry.enabled ? '' : 'text-muted')}>{entry.item.name}</p>
+                  )}
                   <p className="font-mono text-xs text-muted">
                     {entry.item.category}
                     {intervalText(entry) ? ' / every ' + intervalText(entry) : ''}

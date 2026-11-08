@@ -91,6 +91,8 @@ function History() {
 
   //filters
   const [vehicleId, setVehicleId] = useState(searchParams.get('vehicle') || '')
+  //one item, set when a schedule card is clicked
+  const [itemId, setItemId] = useState(searchParams.get('item') || '')
   const [category, setCategory] = useState('')
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
@@ -109,7 +111,7 @@ function History() {
   const [deleteError, setDeleteError] = useState('')
 
   //result remembers which filters it was loaded for, so loading is just a mismatch
-  const key = [vehicleId, category, search, from, to, sortChoice, page, reload].join('|')
+  const key = [vehicleId, itemId, category, search, from, to, sortChoice, page, reload].join('|')
   const loading = !result || result.key !== key
   const data = result ? result.data : null
 
@@ -135,6 +137,7 @@ function History() {
 
     const params = { page, limit: 10, ...sortParams[sortChoice] }
     if (vehicleId) params.vehicle = vehicleId
+    if (itemId) params.item = itemId
     if (category) params.category = category
     if (search) params.search = search
     if (from) params.from = from
@@ -156,7 +159,7 @@ function History() {
     return () => {
       cancelled = true
     }
-  }, [vehicleId, category, search, from, to, sortChoice, page, key])
+  }, [vehicleId, itemId, category, search, from, to, sortChoice, page, key])
 
   const changeFilter = (setter) => (e) => {
     setter(e.target.value)
@@ -165,6 +168,7 @@ function History() {
 
   const clearFilters = () => {
     setVehicleId('')
+    setItemId('')
     setCategory('')
     setSearchInput('')
     setFrom('')
@@ -190,7 +194,7 @@ function History() {
   const vehicleOptions = [{ value: '', label: 'All vehicles' }].concat(
     vehicles.map((v) => ({ value: v._id, label: vehicleName(v) + ' (' + v.registrationNo + ')' }))
   )
-  const filtering = vehicleId || category || search || from || to
+  const filtering = vehicleId || itemId || category || search || from || to
   const empty = data && data.total === 0
 
   return (
@@ -216,6 +220,22 @@ function History() {
         <Field label="From" id="from" type="date" value={from} onChange={changeFilter(setFrom)} />
         <Field label="To" id="to" type="date" value={to} onChange={changeFilter(setTo)} />
       </div>
+
+      {itemId && (
+        <p className="mt-6 flex flex-wrap items-center gap-3 border border-ink bg-card px-3 py-2 text-sm">
+          <span className="font-mono text-[11px] uppercase tracking-widest text-muted">showing only</span>
+          <span className="font-medium">{data && data.records.length > 0 ? data.records[0].item.name : 'one item'}</span>
+          <button
+            onClick={() => {
+              setItemId('')
+              setPage(1)
+            }}
+            className="ml-auto text-xs underline underline-offset-4 hover:text-accent"
+          >
+            Show everything
+          </button>
+        </p>
+      )}
 
       <div className="mt-6">
         <ErrorNote message={error} />
@@ -272,7 +292,7 @@ function History() {
 
                     <dl className="mt-4 grid max-w-md grid-cols-3 gap-4">
                       <BookField label="date" value={formatDate(r.serviceDate)} />
-                      <BookField label="odometer" value={formatKm(r.odometerKm)} />
+                      <BookField label="odometer" value={(r.odometerEstimated ? '~' : '') + formatKm(r.odometerKm)} />
                       <BookField label="cost" value={r.cost !== undefined && r.cost !== null ? formatMoney(r.cost) : '-'} />
                     </dl>
                     {r.notes && (
