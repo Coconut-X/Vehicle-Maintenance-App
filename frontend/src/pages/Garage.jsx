@@ -200,6 +200,11 @@ function Garage() {
               Arrange
             </button>
           )}
+          {groups !== null && groups.length === 0 && (
+            <Link to="/groups" className={btnOutline}>
+              Share with family
+            </Link>
+          )}
           <Link to="/vehicles/new" className={btnPrimary}>
             Add vehicle
           </Link>

@@ -83,6 +83,7 @@ function Dashboard() {
   const [reload, setReload] = useState(0)
   //the groups of the user, cars are shown under the group they are in
   const [groups, setGroups] = useState([])
+  const [groupsReady, setGroupsReady] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -106,6 +107,7 @@ function Dashboard() {
       .get('/groups')
       .then((res) => setGroups(res.data.groups))
       .catch(() => {})
+      .finally(() => setGroupsReady(true))
   }, [reload])
 
   const noVehicles = data && data.vehicles.length === 0 && groups.length === 0
@@ -195,6 +197,20 @@ function Dashboard() {
                 </GroupSection>
               )}
             </>
+          )}
+
+          {/*a hint for people who have no group yet, otherwise the family page is easy to miss*/}
+          {groupsReady && groups.length === 0 && (
+            <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border border-ink bg-card px-5 py-4">
+              <div>
+                <p className="font-mono text-[10px] uppercase tracking-widest text-accent">family and groups</p>
+                <p className="mt-1 font-medium">Share your cars with your family</p>
+                <p className="text-sm text-muted">Make a group, invite people by email, and everyone sees the same cars and logs services together.</p>
+              </div>
+              <Link to="/groups" className={btnOutline}>
+                Make a group
+              </Link>
+            </div>
           )}
 
           <h2 className="mt-12 font-semibold tracking-tight">Needs attention</h2>
