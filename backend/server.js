@@ -13,6 +13,7 @@ const analyticsRoutes = require("./routes/analyticsRoutes");
 const userRoutes = require("./routes/userRoutes");
 const { notFound, errorHandler } = require("./middleware/errorMiddleware");
 const { startReminderJob } = require("./jobs/reminderJob");
+const { ensureCatalogue } = require("./utils/ensureCatalogue");
 const { authLimiter } = require("./middleware/rateLimit");
 
 const app = express();
@@ -64,9 +65,17 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-connectDB().then(() => {
+connectDB().then(async () => {
   app.listen(PORT, () => {
     console.log("server running on port " + PORT);
   });
   startReminderJob();
+
+  //new catalogue items reach existing cars, a failure here must not stop the server
+  try {
+    const added = await ensureCatalogue();
+    if (added.items || added.entries) console.log("catalogue updated: " + JSON.stringify(added));
+  } catch (err) {
+    console.log("catalogue check failed: " + err.message);
+  }
 });

@@ -23,6 +23,7 @@ const items = [
   { name: "Wheel alignment", category: "Tyres", defaultIntervalKm: 20000, defaultIntervalMonths: 12, notes: "car pulling to one side means its due", powertrains: ALL },
   { name: "Tyre replacement", category: "Tyres", defaultIntervalKm: 50000, defaultIntervalMonths: 60, notes: "rubber gets old even if not used", powertrains: ALL },
   { name: "Battery replacement", category: "Electrical", defaultIntervalKm: null, defaultIntervalMonths: 36, notes: "batteries age by time", powertrains: ALL },
+  { name: "Wiper fluid", category: "Fluids", defaultIntervalKm: null, defaultIntervalMonths: 6, notes: "top it up so the wipers can clean the glass", powertrains: ALL },
   { name: "Wiper blades", category: "Electrical", defaultIntervalKm: null, defaultIntervalMonths: 12, notes: "replace if they leave streaks", powertrains: ALL },
   { name: "General inspection / tune-up", category: "Inspection", defaultIntervalKm: 20000, defaultIntervalMonths: 12, notes: "full checkup at a workshop", powertrains: ALL },
 
