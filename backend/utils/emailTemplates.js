@@ -88,6 +88,7 @@ const reminderEmail = ({ userName, cars, itemCount }) => {
         <tr><td colspan="3" style="background:${INK};padding:11px 12px;">
           <a href="${esc(appUrl() + "/vehicles/" + v._id)}" style="font-family:${FONT};font-size:17px;font-weight:bold;color:#ffffff;text-decoration:none;">${esc(car.name)}</a>
           <span style="display:inline-block;margin-left:10px;padding:1px 7px;background:#ffffff;border:2px solid #ffffff;font-family:${MONO};font-size:12px;font-weight:bold;letter-spacing:1px;color:${INK};">${esc(v.registrationNo)}</span>
+          ${car.groupName ? `<span style="margin-left:10px;font-family:${MONO};font-size:11px;color:#9a9a92;">${esc(car.groupName)}</span>` : ""}
         </td></tr>
         <tr>
           <th align="left" style="padding:8px;font-family:${FONT};font-size:11px;letter-spacing:1px;text-transform:uppercase;color:${MUTED};">Item</th>
@@ -114,4 +115,15 @@ const reminderEmail = ({ userName, cars, itemCount }) => {
   });
 };
 
-module.exports = { esc, layout, linkEmail, reminderEmail };
+//the invitation to a group, one button, the names are escaped because users type them
+const inviteEmail = ({ inviterName, groupName, url, days }) =>
+  linkEmail({
+    preheader: inviterName + " invited you to share cars on CarVault.",
+    title: "You are invited",
+    intro: `<strong>${esc(inviterName)}</strong> invited you to the group <strong>${esc(groupName)}</strong> on CarVault. Everyone in the group can see its cars, log services and get the reminders.`,
+    label: "Join " + groupName,
+    url,
+    note: "This link is only for this email address and works once, for " + days + " days. If you do not know " + inviterName + ", ignore this email.",
+  });
+
+module.exports = { esc, layout, linkEmail, reminderEmail, inviteEmail };

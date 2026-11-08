@@ -5,6 +5,7 @@ const { sendMail } = require("../utils/mailer");
 const { makeEmailToken, hashToken, appUrl } = require("../utils/emailToken");
 const { linkEmail } = require("../utils/emailTemplates");
 const { CURRENCIES } = require("../utils/currencies");
+const { findPendingInvite } = require("../utils/groupOps");
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -91,6 +92,14 @@ const register = async (req, res) => {
     errors.currency = "choose one of the listed currencies";
   }
 
+  //signing up from an invitation link, the link was sent to that address so it already proves the address is theirs
+  let invite = null;
+  if (body.inviteToken !== undefined) {
+    invite = await findPendingInvite(body.inviteToken);
+    if (!invite) errors.inviteToken = "this invitation is not valid any more";
+    else if (invite.email !== email) errors.email = "use the email the invitation was sent to";
+  }
+
   if (Object.keys(errors).length > 0) {
     return res.status(422).json({ message: "validation failed", errors });
   }
@@ -113,6 +122,16 @@ const register = async (req, res) => {
     if (currency) user.currency = currency;
   } else {
     user = new User({ name: name.trim(), email, passwordHash, defaultMonthlyKm: monthlyKm, currency, emailVerified: false });
+  }
+
+  //from an invitation the account is verified at once and logged in, the invitation is accepted on the next step
+  if (invite) {
+    user.emailVerified = true;
+    user.verifyTokenHash = undefined;
+    user.verifyExpires = undefined;
+    user.verifySentAt = undefined;
+    await user.save();
+    return res.status(201).json({ token: makeToken(user._id), user: cleanUser(user) });
   }
 
   //no token yet, the user has to open the link in the email first

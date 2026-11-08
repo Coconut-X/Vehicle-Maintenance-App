@@ -13,6 +13,7 @@ const analyticsRoutes = require("./routes/analyticsRoutes");
 const userRoutes = require("./routes/userRoutes");
 const documentRoutes = require("./routes/documentRoutes");
 const reportRoutes = require("./routes/reportRoutes");
+const groupRoutes = require("./routes/groupRoutes");
 const { notFound, errorHandler } = require("./middleware/errorMiddleware");
 const { startReminderJob } = require("./jobs/reminderJob");
 const { ensureCatalogue } = require("./utils/ensureCatalogue");
@@ -64,6 +65,9 @@ app.use("/api/analytics", analyticsRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/documents", documentRoutes);
 app.use("/api/reports", reportRoutes);
+//the public invitation lookup can be hammered to guess tokens, so it shares the login limit
+app.use("/api/groups/invites", authLimiter);
+app.use("/api/groups", groupRoutes);
 
 //these two must stay after all routes
 app.use(notFound);

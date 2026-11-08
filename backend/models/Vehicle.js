@@ -8,6 +8,13 @@ const vehicleSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    //the group this car is shared with, empty means it is only the owners
+    group: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Group",
+      default: null,
+      index: true,
+    },
     make: {
       type: String,
       required: true,
