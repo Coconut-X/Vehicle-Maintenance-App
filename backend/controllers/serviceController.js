@@ -6,6 +6,7 @@ const { resetBaseline, updateOdometer, recalcUsage } = require("../utils/service
 const { calcDue } = require("../utils/dueDate");
 const { getStatus } = require("../utils/status");
 const { odometerRange } = require("../utils/odometerRange");
+const { getVehicleForUser, accessibleVehicleIds } = require("../utils/access");
 const { getString, getPaging, escapeRegex, pageInfo } = require("../utils/listQuery");
 
 const isWholeNumber = (v, min, max) => {
@@ -15,6 +16,13 @@ const isWholeNumber = (v, min, max) => {
 
 //an empty odometer means the user doesnt remember it, we estimate it from the date
 const isBlank = (v) => v === undefined || v === null || v === "";
+
+//a record only if it is of a car the user can use
+const findRecordFor = async (userId, id) => {
+  if (!/^[a-f0-9]{24}$/i.test(String(id))) return null;
+  const record = await ServiceRecord.findById(id);
+  return record && (await getVehicleForUser(userId, record.vehicle)) ? record : null;
+};
 
 const isValidId = (id) => typeof id === "string" && /^[a-f0-9]{24}$/i.test(id);
 
@@ -131,7 +139,7 @@ const createService = async (req, res) => {
     return res.status(422).json({ message: "validation failed", errors });
   }
 
-  const vehicle = await Vehicle.findOne({ _id: body.vehicle, owner: req.userId });
+  const vehicle = await getVehicleForUser(req.userId, body.vehicle);
   if (!vehicle) {
     return res.status(404).json({ message: "vehicle not found" });
   }
@@ -182,7 +190,9 @@ const createService = async (req, res) => {
     }
   }
 
-  data.owner = req.userId;
+  //the record belongs to the owner of the car, who really logged it is kept apart
+  data.owner = vehicle.owner;
+  data.createdBy = req.userId;
   data.vehicle = vehicle._id;
   data.item = item._id;
   const record = await ServiceRecord.create(data);
@@ -204,7 +214,7 @@ const getOdometerRange = async (req, res) => {
     return res.status(422).json({ message: "validation failed", errors: { date: "enter a valid date that is not in the future" } });
   }
 
-  const vehicle = await Vehicle.findOne({ _id: req.query.vehicle, owner: req.userId });
+  const vehicle = await getVehicleForUser(req.userId, req.query.vehicle);
   if (!vehicle) {
     return res.status(404).json({ message: "vehicle not found" });
   }
@@ -222,10 +232,11 @@ const getServices = async (req, res) => {
   const sort = getString(req.query.sort);
   const order = getString(req.query.order) === "asc" ? 1 : -1;
 
-  //owner first so nobody can see other peoples records
-  const query = { owner: req.userId };
+  //only the records of cars the user can use, own or of a group
+  const usable = (await accessibleVehicleIds(req.userId)).map((id) => id.toString());
+  const query = { vehicle: { $in: usable } };
 
-  if (isValidId(req.query.vehicle)) query.vehicle = req.query.vehicle;
+  if (isValidId(req.query.vehicle)) query.vehicle = usable.includes(req.query.vehicle) ? req.query.vehicle : null;
   if (isValidId(req.query.item)) query.item = req.query.item;
 
   //category lives on the catalogue item so find those items first
@@ -262,6 +273,7 @@ const getServices = async (req, res) => {
     .skip(skip)
     .limit(limit)
     .populate("item", "name category")
+    .populate("createdBy", "name")
     .populate("vehicle", "make model nickname registrationNo");
 
   res.json({ records, ...pageInfo(total, page, limit) });
@@ -269,7 +281,7 @@ const getServices = async (req, res) => {
 
 const updateService = async (req, res) => {
   const body = req.body || {};
-  const record = await ServiceRecord.findOne({ _id: req.params.id, owner: req.userId });
+  const record = await findRecordFor(req.userId, req.params.id);
   if (!record) {
     return res.status(404).json({ message: "service record not found" });
   }
@@ -319,10 +331,11 @@ const updateService = async (req, res) => {
 };
 
 const deleteService = async (req, res) => {
-  const record = await ServiceRecord.findOneAndDelete({ _id: req.params.id, owner: req.userId });
-  if (!record) {
+  const found = await findRecordFor(req.userId, req.params.id);
+  if (!found) {
     return res.status(404).json({ message: "service record not found" });
   }
+  const record = await ServiceRecord.findOneAndDelete({ _id: found._id });
   await deleteImage(record.receiptId);
 
   //baseline goes back to the previous record of the same item

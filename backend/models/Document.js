@@ -8,6 +8,11 @@ const documentSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    //who added it, the owner field is the owner of the car
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
     vehicle: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Vehicle",

@@ -1,6 +1,7 @@
 const Vehicle = require("../models/Vehicle");
 const ScheduleEntry = require("../models/ScheduleEntry");
 const User = require("../models/User");
+const { accessibleVehicles } = require("../utils/access");
 const { evaluateVehicle } = require("../utils/vehicleStatus");
 const { orderVehicles } = require("../utils/vehicleOrder");
 
@@ -8,8 +9,10 @@ const { orderVehicles } = require("../utils/vehicleOrder");
 const getDashboard = async (req, res) => {
   //newest first, then moved into the order the user arranged
   const user = await User.findById(req.userId).select("vehicleOrder");
-  const vehicles = orderVehicles(await Vehicle.find({ owner: req.userId }).sort({ createdAt: -1 }), user ? user.vehicleOrder : []);
-  const entries = await ScheduleEntry.find({ owner: req.userId, enabled: true }).populate("item", "name category");
+  //own cars and the cars of the groups the user is in
+  const mine = (await accessibleVehicles(req.userId)).sort((a, b) => b.createdAt - a.createdAt);
+  const vehicles = orderVehicles(mine, user ? user.vehicleOrder : []);
+  const entries = await ScheduleEntry.find({ vehicle: { $in: vehicles.map((v) => v._id) }, enabled: true }).populate("item", "name category");
 
   //group entries by vehicle so each vehicle only looks at its own items
   const byVehicle = {};
@@ -33,6 +36,7 @@ const getDashboard = async (req, res) => {
       nickname: v.nickname,
       registrationNo: v.registrationNo,
       year: v.year,
+      group: v.group,
       powertrain: v.powertrain,
       photoUrl: v.photoUrl,
       summary: result.summary,

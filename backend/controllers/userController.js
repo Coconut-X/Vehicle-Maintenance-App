@@ -5,6 +5,9 @@ const ScheduleEntry = require("../models/ScheduleEntry");
 const ServiceRecord = require("../models/ServiceRecord");
 const ReminderLog = require("../models/ReminderLog");
 const Document = require("../models/Document");
+const Group = require("../models/Group");
+const Invite = require("../models/Invite");
+const { removeMember } = require("../utils/groupOps");
 const { deleteImage, deletePrivate } = require("../config/cloudinary");
 const { cleanUser } = require("./authController");
 const { CURRENCIES } = require("../utils/currencies");
@@ -106,6 +109,12 @@ const deleteMe = async (req, res) => {
   if (!match) {
     return res.status(422).json({ message: "validation failed", errors: { password: "password is wrong" } });
   }
+
+  //leave every group first, the cars of the group that are his go to the admin so the family keeps them
+  //a group where he is the only one left goes away with him
+  const groups = await Group.find({ "members.user": user._id });
+  for (const group of groups) await removeMember(group, user._id);
+  await Invite.deleteMany({ invitedBy: user._id });
 
   //images first because we need the ids from the records
   const records = await ServiceRecord.find({ owner: user._id });

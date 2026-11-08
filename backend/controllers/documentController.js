@@ -98,7 +98,7 @@ const createDocument = async (req, res) => {
   const files = await storeFiles(req.files, "carvault/documents");
   if (!files) return uploadFailed(res);
 
-  const doc = await Document.create({ owner: req.userId, vehicle: vehicle._id, name: body.name.trim(), files });
+  const doc = await Document.create({ owner: vehicle.owner, createdBy: req.userId, vehicle: vehicle._id, name: body.name.trim(), files });
   res.status(201).json({ document: present(doc) });
 };
 

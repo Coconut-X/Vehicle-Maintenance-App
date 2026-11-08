@@ -1,6 +1,7 @@
 const ScheduleEntry = require("../models/ScheduleEntry");
 const Vehicle = require("../models/Vehicle");
 const CatalogueItem = require("../models/CatalogueItem");
+const { getVehicleForUser } = require("../utils/access");
 
 //null or empty string means the user wants to clear that interval
 const isCleared = (v) => v === null || v === "";
@@ -14,7 +15,9 @@ const isWholeNumber = (v, min, max) => {
 //when an item was last done is never edited here, only logging a service moves it
 const updateEntry = async (req, res) => {
   const body = req.body || {};
-  const entry = await ScheduleEntry.findOne({ _id: req.params.entryId, owner: req.userId });
+  //the entry of a car the user can use, own or of a group
+  const found = /^[a-f0-9]{24}$/i.test(String(req.params.entryId)) ? await ScheduleEntry.findById(req.params.entryId) : null;
+  const entry = found && (await getVehicleForUser(req.userId, found.vehicle)) ? found : null;
   if (!entry) {
     return res.status(404).json({ message: "schedule entry not found" });
   }

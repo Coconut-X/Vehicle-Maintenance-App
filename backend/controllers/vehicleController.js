@@ -12,6 +12,8 @@ const { getStatus, worstStatus } = require("../utils/status");
 const { evaluateVehicle } = require("../utils/vehicleStatus");
 const { newEntry } = require("../utils/newEntry");
 const { orderVehicles } = require("../utils/vehicleOrder");
+const Group = require("../models/Group");
+const { vehicleQuery, getVehicleForUser, accessibleVehicles } = require("../utils/access");
 const { getString, getPaging, escapeRegex, pageInfo } = require("../utils/listQuery");
 const { POWERTRAINS } = require("../seed/catalogue");
 
@@ -134,6 +136,15 @@ const createVehicle = async (req, res) => {
   data.owner = req.userId;
   data.odometerDate = new Date();
 
+  //a car can go straight into one of the groups the user is in
+  if (body.group !== undefined && body.group !== "" && body.group !== null) {
+    const inGroup = /^[a-f0-9]{24}$/i.test(String(body.group)) ? await Group.exists({ _id: body.group, "members.user": req.userId }) : null;
+    if (!inGroup) {
+      return res.status(422).json({ message: "validation failed", errors: { group: "choose one of your groups" } });
+    }
+    data.group = body.group;
+  }
+
   //no km per month given, use the default from the users profile if there is one
   if (data.avgMonthlyKm === undefined || data.avgMonthlyKm === "") {
     const user = await User.findById(req.userId);
@@ -164,7 +175,7 @@ const setOrder = async (req, res) => {
   }
 
   //only the users own vehicles count, anything else is dropped
-  const own = await Vehicle.find({ owner: req.userId, _id: { $in: ids } }).select("_id");
+  const own = await accessibleVehicles(req.userId, { _id: { $in: ids } });
   const ownIds = new Set(own.map((v) => v._id.toString()));
   const clean = [...new Set(ids.filter((id) => ownIds.has(id)))];
 
@@ -178,15 +189,15 @@ const getVehicles = async (req, res) => {
   const status = getString(req.query.status);
   const sort = getString(req.query.sort);
 
-  //owner first so nobody can see other peoples vehicles
-  const query = { owner: req.userId };
+  //own cars and the cars of the groups the user is in, nobody else's
+  const extra = {};
   if (search) {
     const regex = new RegExp(escapeRegex(search), "i");
-    query.$or = [{ make: regex }, { model: regex }, { nickname: regex }, { registrationNo: regex }];
+    extra.$or = [{ make: regex }, { model: regex }, { nickname: regex }, { registrationNo: regex }];
   }
 
-  const vehicles = await Vehicle.find(query).sort({ createdAt: -1 });
-  const entries = await ScheduleEntry.find({ owner: req.userId, enabled: true, vehicle: { $in: vehicles.map((v) => v._id) } });
+  const vehicles = await Vehicle.find(await vehicleQuery(req.userId, extra)).sort({ createdAt: -1 });
+  const entries = await ScheduleEntry.find({ enabled: true, vehicle: { $in: vehicles.map((v) => v._id) } });
 
   const now = new Date();
   let list = vehicles.map((v) => {
@@ -225,7 +236,7 @@ const getVehicles = async (req, res) => {
 
 const getVehicle = async (req, res) => {
   //404 even if it belongs to someone else so we dont leak that it exists
-  const vehicle = await Vehicle.findOne({ _id: req.params.id, owner: req.userId });
+  const vehicle = await getVehicleForUser(req.userId, req.params.id);
   if (!vehicle) {
     return res.status(404).json({ message: "vehicle not found" });
   }
@@ -233,12 +244,12 @@ const getVehicle = async (req, res) => {
 };
 
 const getSchedule = async (req, res) => {
-  const vehicle = await Vehicle.findOne({ _id: req.params.id, owner: req.userId });
+  const vehicle = await getVehicleForUser(req.userId, req.params.id);
   if (!vehicle) {
     return res.status(404).json({ message: "vehicle not found" });
   }
 
-  const all = await ScheduleEntry.find({ vehicle: vehicle._id, owner: req.userId }).populate(
+  const all = await ScheduleEntry.find({ vehicle: vehicle._id }).populate(
     "item",
     "name category notes powertrains"
   );
@@ -263,7 +274,7 @@ const getSchedule = async (req, res) => {
 
 const updateVehicle = async (req, res) => {
   const body = req.body || {};
-  const vehicle = await Vehicle.findOne({ _id: req.params.id, owner: req.userId });
+  const vehicle = await getVehicleForUser(req.userId, req.params.id);
   if (!vehicle) {
     return res.status(404).json({ message: "vehicle not found" });
   }
@@ -273,7 +284,7 @@ const updateVehicle = async (req, res) => {
     return res.status(422).json({ message: "validation failed", errors });
   }
 
-  if (body.registrationNo !== undefined && (await regTaken(req.userId, body.registrationNo, vehicle._id))) {
+  if (body.registrationNo !== undefined && (await regTaken(vehicle.owner, body.registrationNo, vehicle._id))) {
     return res.status(409).json(regError);
   }
 
@@ -302,20 +313,22 @@ const updateVehicle = async (req, res) => {
 };
 
 const deleteVehicle = async (req, res) => {
-  const vehicle = await Vehicle.findOneAndDelete({ _id: req.params.id, owner: req.userId });
+  //anyone in the group of the car may delete it
+  const vehicle = await getVehicleForUser(req.userId, req.params.id);
   if (!vehicle) {
     return res.status(404).json({ message: "vehicle not found" });
   }
+  await Vehicle.deleteOne({ _id: vehicle._id });
 
   //remove everything that belongs to this vehicle so nothing is left orphaned
-  await ScheduleEntry.deleteMany({ vehicle: vehicle._id, owner: req.userId });
+  await ScheduleEntry.deleteMany({ vehicle: vehicle._id });
 
-  const records = await ServiceRecord.find({ vehicle: vehicle._id, owner: req.userId });
+  const records = await ServiceRecord.find({ vehicle: vehicle._id });
   for (const record of records) {
     await deleteImage(record.receiptId);
   }
-  await ServiceRecord.deleteMany({ vehicle: vehicle._id, owner: req.userId });
-  await ReminderLog.deleteMany({ vehicle: vehicle._id, owner: req.userId });
+  await ServiceRecord.deleteMany({ vehicle: vehicle._id });
+  await ReminderLog.deleteMany({ vehicle: vehicle._id });
 
   //its documents and every page of them
   const documents = await Document.find({ vehicle: vehicle._id });

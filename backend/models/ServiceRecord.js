@@ -18,6 +18,11 @@ const serviceRecordSchema = new mongoose.Schema(
       ref: "CatalogueItem",
       required: true,
     },
+    //who typed it in, the owner field is the owner of the car
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
     serviceDate: {
       type: Date,
       required: true,

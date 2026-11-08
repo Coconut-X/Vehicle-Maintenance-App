@@ -1,6 +1,5 @@
-const mongoose = require("mongoose");
 const ServiceRecord = require("../models/ServiceRecord");
-const Vehicle = require("../models/Vehicle");
+const { accessibleVehicleIds, getVehicleForUser } = require("../utils/access");
 
 const isValidId = (id) => typeof id === "string" && /^[a-f0-9]{24}$/i.test(id);
 
@@ -17,13 +16,14 @@ const lastMonths = (count) => {
 
 //cost totals for the whole garage or for one vehicle with ?vehicle=id
 const getAnalytics = async (req, res) => {
-  const owner = new mongoose.Types.ObjectId(req.userId);
-  const match = { owner };
+  //the cars of the user, own and of the groups
+  const usable = await accessibleVehicleIds(req.userId);
+  const match = { vehicle: { $in: usable } };
 
   const vehicleId = req.query.vehicle;
   if (vehicleId) {
     //another users vehicle gives 404 same as a missing one
-    const vehicle = isValidId(vehicleId) ? await Vehicle.findOne({ _id: vehicleId, owner: req.userId }) : null;
+    const vehicle = isValidId(vehicleId) ? await getVehicleForUser(req.userId, vehicleId) : null;
     if (!vehicle) {
       return res.status(404).json({ message: "vehicle not found" });
     }
