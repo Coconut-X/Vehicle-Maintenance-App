@@ -4,7 +4,8 @@ const Vehicle = require("../models/Vehicle");
 const ScheduleEntry = require("../models/ScheduleEntry");
 const ServiceRecord = require("../models/ServiceRecord");
 const ReminderLog = require("../models/ReminderLog");
-const { deleteImage } = require("../config/cloudinary");
+const Document = require("../models/Document");
+const { deleteImage, deletePrivate } = require("../config/cloudinary");
 const { cleanUser } = require("./authController");
 const { CURRENCIES } = require("../utils/currencies");
 
@@ -115,6 +116,13 @@ const deleteMe = async (req, res) => {
   for (const vehicle of vehicles) {
     await deleteImage(vehicle.photoId);
   }
+
+  //the private files of its documents, then the documents
+  const documents = await Document.find({ owner: user._id });
+  for (const doc of documents) {
+    for (const file of doc.files) await deletePrivate(file);
+  }
+  await Document.deleteMany({ owner: user._id });
 
   await ReminderLog.deleteMany({ owner: user._id });
   await ServiceRecord.deleteMany({ owner: user._id });
