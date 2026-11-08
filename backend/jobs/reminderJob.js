@@ -3,6 +3,7 @@ const cron = require("node-cron");
 const User = require("../models/User");
 const Vehicle = require("../models/Vehicle");
 const ScheduleEntry = require("../models/ScheduleEntry");
+const Group = require("../models/Group");
 //needed for populate when this runs on its own with npm run reminders
 require("../models/CatalogueItem");
 const ReminderLog = require("../models/ReminderLog");
@@ -28,13 +29,34 @@ const thresholdText = (threshold, due) => {
   return "due in " + due.remainingDays + (due.remainingDays === 1 ? " day" : " days");
 };
 
-//finds the reminders one user still needs, skips the ones already in the log
+//the cars this person gets reminders about
+//their own cars that are not shared, and the cars of every group they are in as far as they chose in that group
+//all = every car of the group, off = none, custom = only the cars they picked
+const carsToWatch = async (user) => {
+  const cars = (await Vehicle.find({ owner: user._id, group: null })).map((vehicle) => ({ vehicle, groupName: "" }));
+
+  const groups = await Group.find({ "members.user": user._id });
+  for (const group of groups) {
+    const me = group.members.find((m) => m.user.toString() === user._id.toString());
+    const mode = me ? me.notify.mode : "all";
+    if (mode === "off") continue;
+
+    const query = { group: group._id };
+    if (mode === "custom") query._id = { $in: me.notify.vehicles };
+    const shared = await Vehicle.find(query);
+    shared.forEach((vehicle) => cars.push({ vehicle, groupName: group.name }));
+  }
+  return cars;
+};
+
+//finds the reminders one user still needs, skips the ones already sent to this same person
+//the log belongs to the person who got the email, so everyone in a family gets their own
 const findReminders = async (user, evalDate) => {
-  const vehicles = await Vehicle.find({ owner: user._id });
+  const cars = await carsToWatch(user);
   const reminders = [];
 
-  for (const vehicle of vehicles) {
-    const entries = await ScheduleEntry.find({ owner: user._id, vehicle: vehicle._id, enabled: true }).populate("item", "name");
+  for (const { vehicle, groupName } of cars) {
+    const entries = await ScheduleEntry.find({ vehicle: vehicle._id, enabled: true }).populate("item", "name");
 
     for (const entry of entries) {
       if (!entry.item) continue;
@@ -54,7 +76,7 @@ const findReminders = async (user, evalDate) => {
       });
       if (sent) continue;
 
-      reminders.push({ vehicle, entry, due, threshold, baselineDate });
+      reminders.push({ vehicle, groupName, entry, due, threshold, baselineDate });
     }
   }
 
@@ -71,7 +93,7 @@ const groupByCar = (reminders) => {
   const cars = {};
   reminders.forEach((r) => {
     const key = r.vehicle._id.toString();
-    if (!cars[key]) cars[key] = { vehicle: r.vehicle, name: carName(r.vehicle), items: [] };
+    if (!cars[key]) cars[key] = { vehicle: r.vehicle, name: carName(r.vehicle), groupName: r.groupName, items: [] };
     cars[key].items.push(r);
   });
 
@@ -87,7 +109,7 @@ const buildEmail = (user, reminders) => {
   //plain text, for mail apps that dont show html, a heading per car and one line per item
   let text = "Hi " + user.name + ",\n\nThese maintenance items are coming up or overdue:\n";
   cars.forEach((car) => {
-    text += "\n" + car.name.toUpperCase() + " (" + car.vehicle.registrationNo + ")\n";
+    text += "\n" + car.name.toUpperCase() + " (" + car.vehicle.registrationNo + ")" + (car.groupName ? " - " + car.groupName : "") + "\n";
     car.items.forEach((r) => {
       let line = "  - " + r.entry.item.name + ": " + thresholdText(r.threshold, r.due) + ", " + prettyDate(r.due.dueDate);
       if (r.due.dueKm != null) line += " or at " + r.due.dueKm.toLocaleString("en-US") + " km";
@@ -103,6 +125,7 @@ const buildEmail = (user, reminders) => {
     cars: cars.map((car) => ({
       vehicle: car.vehicle,
       name: car.name,
+      groupName: car.groupName,
       rows: car.items.map((r) => ({
         name: r.entry.item.name,
         status: r.threshold === "overdue" ? "overdue" : "due_soon",
@@ -184,4 +207,4 @@ const startReminderJob = () => {
   console.log("reminder job scheduled");
 };
 
-module.exports = { getThreshold, buildEmail, runReminders, startReminderJob };
+module.exports = { getThreshold, findReminders, buildEmail, runReminders, startReminderJob };
