@@ -11,6 +11,7 @@ const serviceRoutes = require("./routes/serviceRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
 const userRoutes = require("./routes/userRoutes");
+const documentRoutes = require("./routes/documentRoutes");
 const { notFound, errorHandler } = require("./middleware/errorMiddleware");
 const { startReminderJob } = require("./jobs/reminderJob");
 const { ensureCatalogue } = require("./utils/ensureCatalogue");
@@ -58,6 +59,7 @@ app.use("/api/services", serviceRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/documents", documentRoutes);
 
 //these two must stay after all routes
 app.use(notFound);

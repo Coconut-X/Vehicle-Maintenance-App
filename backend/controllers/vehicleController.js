@@ -4,7 +4,8 @@ const CatalogueItem = require("../models/CatalogueItem");
 const ScheduleEntry = require("../models/ScheduleEntry");
 const ServiceRecord = require("../models/ServiceRecord");
 const ReminderLog = require("../models/ReminderLog");
-const { uploadImage, deleteImage } = require("../config/cloudinary");
+const { uploadImage, deleteImage, deletePrivate } = require("../config/cloudinary");
+const Document = require("../models/Document");
 const { projectionInfo } = require("../utils/projection");
 const { calcDue } = require("../utils/dueDate");
 const { getStatus, worstStatus } = require("../utils/status");
@@ -315,6 +316,13 @@ const deleteVehicle = async (req, res) => {
   }
   await ServiceRecord.deleteMany({ vehicle: vehicle._id, owner: req.userId });
   await ReminderLog.deleteMany({ vehicle: vehicle._id, owner: req.userId });
+
+  //its documents and every page of them
+  const documents = await Document.find({ vehicle: vehicle._id });
+  for (const doc of documents) {
+    for (const file of doc.files) await deletePrivate(file);
+  }
+  await Document.deleteMany({ vehicle: vehicle._id });
 
   await deleteImage(vehicle.photoId);
 

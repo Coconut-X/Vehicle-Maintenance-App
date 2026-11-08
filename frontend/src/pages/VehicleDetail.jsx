@@ -9,6 +9,7 @@ import Plate from '../components/Plate'
 import CarArt from '../components/CarArt'
 import Odometer from '../components/Odometer'
 import HealthMap from '../components/HealthMap'
+import DocumentsPanel from '../components/DocumentsPanel'
 import { btnOutline, btnPrimary, labelClass } from '../components/ui'
 
 function Stat({ label, value, note }) {
@@ -31,6 +32,7 @@ function VehicleDetail() {
   const [confirming, setConfirming] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
+  const [tab, setTab] = useState('schedule')
   const [photoBusy, setPhotoBusy] = useState(false)
   const [photoError, setPhotoError] = useState('')
   const photoInput = useRef(null)
@@ -247,12 +249,28 @@ function VehicleDetail() {
 
       <HealthMap entries={schedule} vehicleId={id} powertrain={vehicle.powertrain} />
 
-      <div className="mt-10 flex gap-6 border-b border-line">
-        <span className="-mb-px border-b-2 border-ink pb-2 text-sm font-medium">Schedule</span>
+      <div className="mt-10 flex gap-6 border-b border-line" role="tablist">
+        {[
+          { key: 'schedule', label: 'Schedule' },
+          { key: 'documents', label: 'Documents' },
+        ].map((t) => (
+          <button
+            key={t.key}
+            role="tab"
+            aria-selected={tab === t.key}
+            onClick={() => setTab(t.key)}
+            className={
+              '-mb-px border-b-2 pb-2 text-sm transition-colors ' +
+              (tab === t.key ? 'border-ink font-medium' : 'border-transparent text-muted hover:text-ink')
+            }
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
 
       <div className="mt-6">
-        <ScheduleTable entries={schedule} vehicle={vehicle} onChanged={reloadSchedule} />
+        {tab === 'schedule' ? <ScheduleTable entries={schedule} vehicle={vehicle} onChanged={reloadSchedule} /> : <DocumentsPanel vehicleId={id} />}
       </div>
     </div>
   )
