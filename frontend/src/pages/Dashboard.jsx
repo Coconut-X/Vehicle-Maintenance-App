@@ -11,6 +11,7 @@ import Plate from '../components/Plate'
 import CarArt from '../components/CarArt'
 import PartGauge from '../components/PartGauge'
 import ArrangeCars from '../components/ArrangeCars'
+import GroupSection, { EmptyGroup } from '../components/GroupSection'
 import { buildSystems } from '../wear'
 import { btnOutline, btnPrimary, labelClass } from '../components/ui'
 
@@ -80,6 +81,8 @@ function Dashboard() {
   const [arranging, setArranging] = useState(false)
   //counts up after arranging so the cars are loaded again in the new order
   const [reload, setReload] = useState(0)
+  //the groups of the user, cars are shown under the group they are in
+  const [groups, setGroups] = useState([])
 
   useEffect(() => {
     let cancelled = false
@@ -98,7 +101,14 @@ function Dashboard() {
     }
   }, [reload])
 
-  const noVehicles = data && data.vehicles.length === 0
+  useEffect(() => {
+    api
+      .get('/groups')
+      .then((res) => setGroups(res.data.groups))
+      .catch(() => {})
+  }, [reload])
+
+  const noVehicles = data && data.vehicles.length === 0 && groups.length === 0
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-12">
@@ -148,11 +158,44 @@ function Dashboard() {
               }}
             />
           )}
-          <ul className="mt-3 grid gap-4 md:grid-cols-2">
-            {data.vehicles.map((v) => (
-              <VehicleCard key={v._id} vehicle={v} />
-            ))}
-          </ul>
+          {groups.length === 0 ? (
+            <ul className="mt-3 grid gap-4 md:grid-cols-2">
+              {data.vehicles.map((v) => (
+                <VehicleCard key={v._id} vehicle={v} />
+              ))}
+            </ul>
+          ) : (
+            <>
+              {/*every group has its own part, even with no cars, then the cars that are only yours*/}
+              {groups.map((g) => {
+                const cars = data.vehicles.filter((v) => v.group === g._id)
+                return (
+                  <GroupSection key={g._id} group={g} count={cars.length}>
+                    {cars.length === 0 ? (
+                      <EmptyGroup group={g} />
+                    ) : (
+                      <ul className="mt-4 grid gap-4 md:grid-cols-2">
+                        {cars.map((v) => (
+                          <VehicleCard key={v._id} vehicle={v} />
+                        ))}
+                      </ul>
+                    )}
+                  </GroupSection>
+                )
+              })}
+              {data.vehicles.some((v) => !v.group) && (
+                <GroupSection group={null} count={data.vehicles.filter((v) => !v.group).length}>
+                  <ul className="mt-4 grid gap-4 md:grid-cols-2">
+                    {data.vehicles
+                      .filter((v) => !v.group)
+                      .map((v) => (
+                        <VehicleCard key={v._id} vehicle={v} />
+                      ))}
+                  </ul>
+                </GroupSection>
+              )}
+            </>
+          )}
 
           <h2 className="mt-12 font-semibold tracking-tight">Needs attention</h2>
           {data.urgent.length === 0 ? (

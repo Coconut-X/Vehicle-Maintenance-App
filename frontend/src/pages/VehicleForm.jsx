@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import api, { readError } from '../api'
 import { validateVehicle } from '../validate'
 import { powertrains, vehicleName } from '../format'
 import Field from '../components/Field'
+import Select from '../components/Select'
 import CarArt from '../components/CarArt'
 import { btnOutline, btnPrimary, labelClass } from '../components/ui'
 
@@ -23,7 +24,11 @@ function VehicleForm() {
   const { id } = useParams()
   const isEdit = !!id
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
 
+  //a new car can go straight into a group, /vehicles/new?group=id from a group page
+  const [groups, setGroups] = useState([])
+  const [groupId, setGroupId] = useState(searchParams.get('group') || '')
   const [form, setForm] = useState(emptyForm)
   const [photo, setPhoto] = useState(null)
   const [savedPhotoUrl, setSavedPhotoUrl] = useState('')
@@ -34,6 +39,15 @@ function VehicleForm() {
   const [formError, setFormError] = useState('')
   const [loading, setLoading] = useState(isEdit)
   const [saving, setSaving] = useState(false)
+
+  //the groups the user is in, only needed when adding
+  useEffect(() => {
+    if (isEdit) return
+    api
+      .get('/groups')
+      .then((res) => setGroups(res.data.groups))
+      .catch(() => {})
+  }, [isEdit])
 
   //load the vehicle when editing
   useEffect(() => {
@@ -106,6 +120,7 @@ function VehicleForm() {
     if (isEdit || form.nickname.trim() !== '') body.append('nickname', form.nickname.trim())
     if (form.avgMonthlyKm !== '') body.append('avgMonthlyKm', form.avgMonthlyKm)
     if (photo) body.append('photo', photo)
+    if (!isEdit && groupId) body.append('group', groupId)
 
     setSaving(true)
     try {
@@ -238,6 +253,21 @@ function VehicleForm() {
           onChange={handleChange}
           error={errors.nickname}
         />
+
+        {!isEdit && groups.length > 0 && (
+          <div>
+            <Select
+              label="Who can see this car"
+              id="group"
+              name="group"
+              value={groupId}
+              onChange={(e) => setGroupId(e.target.value)}
+              options={[{ value: '', label: 'Only me' }, ...groups.map((g) => ({ value: g._id, label: g.name + ' (shared with the group)' }))]}
+            />
+            {errors.group && <p className="mt-1 text-xs text-bad">{errors.group}</p>}
+            <p className="mt-1 text-xs text-muted">Everyone in a group can see the car, log services and edit it. You can change this later from the group page.</p>
+          </div>
+        )}
 
         <div>
           <label htmlFor="photo" className={labelClass}>

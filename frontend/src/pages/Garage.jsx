@@ -9,6 +9,7 @@ import Plate from '../components/Plate'
 import Pagination from '../components/Pagination'
 import CarArt from '../components/CarArt'
 import ArrangeCars from '../components/ArrangeCars'
+import GroupSection, { EmptyGroup } from '../components/GroupSection'
 import { btnOutline, btnPrimary, labelClass } from '../components/ui'
 
 const statusOptions = [
@@ -126,13 +127,17 @@ function Garage() {
   const [arranging, setArranging] = useState(false)
   //counts up after arranging so the list is loaded again
   const [reload, setReload] = useState(0)
+  //null until loaded, with groups the cars are shown in parts so all of them are loaded at once
+  const [groups, setGroups] = useState(null)
 
   //result remembers which filters it was loaded for, so loading is just a mismatch
   const [result, setResult] = useState(null)
   const [error, setError] = useState('')
 
-  const key = [search, status, sort, page, reload].join('|')
-  const loading = !result || result.key !== key
+  const grouped = groups !== null && groups.length > 0
+  const limit = grouped ? 50 : 9
+  const key = [search, status, sort, page, reload, limit].join('|')
+  const loading = groups === null || !result || result.key !== key
   const data = result ? result.data : null
 
   //wait a bit after typing so we dont send a request for every letter
@@ -145,10 +150,18 @@ function Garage() {
   }, [searchInput])
 
   useEffect(() => {
+    api
+      .get('/groups')
+      .then((res) => setGroups(res.data.groups))
+      .catch(() => setGroups([]))
+  }, [reload])
+
+  useEffect(() => {
+    if (groups === null) return
     let cancelled = false
 
     api
-      .get('/vehicles', { params: { search, status, sort, page, limit: 9 } })
+      .get('/vehicles', { params: { search, status, sort, page, limit } })
       .then((res) => {
         if (cancelled) return
         setError('')
@@ -164,7 +177,7 @@ function Garage() {
     return () => {
       cancelled = true
     }
-  }, [search, status, sort, page, reload, key])
+  }, [search, status, sort, page, reload, key, limit, groups])
 
   const changeFilter = (setter) => (e) => {
     setter(e.target.value)
@@ -172,7 +185,7 @@ function Garage() {
   }
 
   const filtering = search !== '' || status !== ''
-  const empty = data && data.total === 0
+  const empty = data && data.total === 0 && !grouped
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-12">
@@ -253,7 +266,7 @@ function Garage() {
         </div>
       )}
 
-      {data && data.total > 0 && (
+      {data && !grouped && data.total > 0 && (
         <div className={'mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 ' + (loading ? 'opacity-60' : '')}>
           {data.vehicles.map((v, i) => (
             <VehicleCard key={v._id} v={v} bay={(data.page - 1) * 9 + i + 1} />
@@ -262,7 +275,36 @@ function Garage() {
         </div>
       )}
 
-      {data && <Pagination page={data.page} pages={data.pages} total={data.total} label="vehicles" onChange={setPage} />}
+      {/*with groups every group has its own part, even one with no cars, then the cars that are only yours*/}
+      {data && grouped && (
+        <div className={loading ? 'opacity-60' : ''}>
+          {(() => {
+            let bay = 0
+            const parts = groups.map((g) => ({ group: g, cars: data.vehicles.filter((v) => v.group === g._id) }))
+            parts.push({ group: null, cars: data.vehicles.filter((v) => !v.group) })
+            const shown = parts.filter((p) => p.cars.length > 0 || (p.group && !filtering))
+            if (shown.length === 0) {
+              return <p className="mt-8 border border-dashed border-line bg-card px-5 py-8 text-sm text-muted">No vehicles match. Try a different search or clear the status filter.</p>
+            }
+            return shown.map((p) => (
+              <GroupSection key={p.group ? p.group._id : 'mine'} group={p.group} count={p.cars.length}>
+                {p.cars.length === 0 ? (
+                  <EmptyGroup group={p.group} />
+                ) : (
+                  <div className="mt-4 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    {p.cars.map((v) => (
+                      <VehicleCard key={v._id} v={v} bay={++bay} />
+                    ))}
+                    {!p.group && !filtering && <EmptyBay bay={bay + 1} />}
+                  </div>
+                )}
+              </GroupSection>
+            ))
+          })()}
+        </div>
+      )}
+
+      {data && !grouped && <Pagination page={data.page} pages={data.pages} total={data.total} label="vehicles" onChange={setPage} />}
     </div>
   )
 }
