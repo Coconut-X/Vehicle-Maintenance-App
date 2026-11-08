@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const { sendMail } = require("../utils/mailer");
 const { makeEmailToken, hashToken, appUrl } = require("../utils/emailToken");
+const { linkEmail } = require("../utils/emailTemplates");
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -40,11 +41,19 @@ const sendVerification = async (user) => {
 
   const link = appUrl() + "/verify-email?token=" + token;
   try {
+    const note = "The link works for " + VERIFY_HOURS + " hours. If you did not sign up, ignore this email.";
     await sendMail(
       user.email,
       "Verify your CarVault email",
-      "Hi " + user.name + ",\n\nconfirm your email to start using CarVault:\n" + link +
-        "\n\nThe link works for " + VERIFY_HOURS + " hours. If you did not sign up, ignore this email."
+      "Hi " + user.name + ",\n\nconfirm your email to start using CarVault:\n" + link + "\n\n" + note,
+      linkEmail({
+        preheader: "One click to switch your account on.",
+        title: "Confirm your email",
+        intro: "Hi " + user.name.replace(/[&<>"]/g, "") + ", press the button to switch your CarVault account on.",
+        label: "Verify my email",
+        url: link,
+        note,
+      })
     );
   } catch (err) {
     //nothing was sent, so there is nothing to wait for and the user can try again straight away
@@ -205,11 +214,19 @@ const forgotPassword = async (req, res) => {
     await user.save();
 
     const link = appUrl() + "/reset-password?token=" + token;
+    const note = "The link works for " + RESET_HOURS + " hour and only once. If you did not ask for this, ignore this email, your password stays the same.";
     await sendMail(
       user.email,
       "Reset your CarVault password",
-      "Hi " + user.name + ",\n\nopen this link to choose a new password:\n" + link +
-        "\n\nThe link works for " + RESET_HOURS + " hour and only once. If you did not ask for this, ignore this email, your password stays the same."
+      "Hi " + user.name + ",\n\nopen this link to choose a new password:\n" + link + "\n\n" + note,
+      linkEmail({
+        preheader: "Choose a new password for your account.",
+        title: "Reset your password",
+        intro: "Hi " + user.name.replace(/[&<>"]/g, "") + ", press the button to choose a new password.",
+        label: "Choose a new password",
+        url: link,
+        note,
+      })
     );
   } catch (err) {
     console.log("reset email failed: " + err.message);

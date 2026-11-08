@@ -9,6 +9,8 @@ const ReminderLog = require("../models/ReminderLog");
 const { calcDue } = require("../utils/dueDate");
 const { getStatus } = require("../utils/status");
 const { sendMail } = require("../utils/mailer");
+const { reminderEmail } = require("../utils/emailTemplates");
+const { appUrl } = require("../utils/emailToken");
 
 //which threshold an item is at right now, null means nothing to send
 const getThreshold = (due, status) => {
@@ -25,8 +27,6 @@ const thresholdText = (threshold, due) => {
   if (due.remainingDays <= 0) return "due today";
   return "due in " + due.remainingDays + (due.remainingDays === 1 ? " day" : " days");
 };
-
-const formatDate = (d) => new Date(d).toISOString().slice(0, 10);
 
 //finds the reminders one user still needs, skips the ones already in the log
 const findReminders = async (user, evalDate) => {
@@ -61,24 +61,62 @@ const findReminders = async (user, evalDate) => {
   return reminders;
 };
 
+const prettyDate = (d) => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+
+const carName = (v) => v.nickname || v.make + " " + v.model;
+
+//one block per car, so a person with four cars sees which car each item belongs to
+//inside a car the most urgent item is first, overdue ones before the rest
+const groupByCar = (reminders) => {
+  const cars = {};
+  reminders.forEach((r) => {
+    const key = r.vehicle._id.toString();
+    if (!cars[key]) cars[key] = { vehicle: r.vehicle, name: carName(r.vehicle), items: [] };
+    cars[key].items.push(r);
+  });
+
+  return Object.values(cars).map((car) => {
+    car.items.sort((a, b) => (a.due.remainingDays ?? 0) - (b.due.remainingDays ?? 0));
+    return car;
+  });
+};
+
 const buildEmail = (user, reminders) => {
-  const lines = reminders.map((r) => {
-    const name = r.vehicle.nickname || r.vehicle.make + " " + r.vehicle.model;
-    let line = "- " + name + " (" + r.vehicle.registrationNo + "): " + r.entry.item.name + ", " + thresholdText(r.threshold, r.due);
-    line += ", due date " + formatDate(r.due.dueDate);
-    if (r.due.dueKm != null) line += " or at " + r.due.dueKm + " km";
-    return line;
+  const cars = groupByCar(reminders);
+
+  //plain text, for mail apps that dont show html, a heading per car and one line per item
+  let text = "Hi " + user.name + ",\n\nThese maintenance items are coming up or overdue:\n";
+  cars.forEach((car) => {
+    text += "\n" + car.name.toUpperCase() + " (" + car.vehicle.registrationNo + ")\n";
+    car.items.forEach((r) => {
+      let line = "  - " + r.entry.item.name + ": " + thresholdText(r.threshold, r.due) + ", " + prettyDate(r.due.dueDate);
+      if (r.due.dueKm != null) line += " or at " + r.due.dueKm.toLocaleString("en-US") + " km";
+      text += line + "\n";
+    });
+  });
+  text += "\nOpen your dashboard: " + appUrl() + "/dashboard\n";
+  text += "Log the service in CarVault once it is done. You can turn reminders off in your profile.\n";
+
+  const html = reminderEmail({
+    userName: user.name,
+    itemCount: reminders.length,
+    cars: cars.map((car) => ({
+      vehicle: car.vehicle,
+      name: car.name,
+      rows: car.items.map((r) => ({
+        name: r.entry.item.name,
+        status: r.threshold === "overdue" ? "overdue" : "due_soon",
+        //due today or tomorrow is as pressing as overdue, so it gets the red too
+        urgent: r.due.remainingDays != null && r.due.remainingDays <= 1,
+        statusText: thresholdText(r.threshold, r.due),
+        dueDate: prettyDate(r.due.dueDate),
+        dueKm: r.due.dueKm != null ? r.due.dueKm.toLocaleString("en-US") + " km" : "",
+      })),
+    })),
   });
 
   const subject = "CarVault: " + reminders.length + (reminders.length === 1 ? " item needs" : " items need") + " attention";
-  const text =
-    "Hi " + user.name + ",\n\n" +
-    "These maintenance items are coming up or overdue:\n\n" +
-    lines.join("\n") +
-    "\n\nLog the service in CarVault once it is done.\n" +
-    "You can turn reminders off in your profile.\n";
-
-  return { subject, text };
+  return { subject, text, html };
 };
 
 let running = false;
@@ -104,8 +142,8 @@ const runReminders = async (evalDate = new Date()) => {
         const reminders = await findReminders(user, evalDate);
         if (reminders.length === 0) continue;
 
-        const { subject, text } = buildEmail(user, reminders);
-        await sendMail(user.email, subject, text);
+        const { subject, text, html } = buildEmail(user, reminders);
+        await sendMail(user.email, subject, text, html);
 
         //log only after the send worked, so a failed send is tried again tomorrow
         for (const r of reminders) {
@@ -146,4 +184,4 @@ const startReminderJob = () => {
   console.log("reminder job scheduled");
 };
 
-module.exports = { getThreshold, runReminders, startReminderJob };
+module.exports = { getThreshold, buildEmail, runReminders, startReminderJob };

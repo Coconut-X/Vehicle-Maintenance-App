@@ -30,7 +30,7 @@ const getTransporter = () => {
 const fromAddress = () => process.env.MAIL_FROM || process.env.SMTP_USER || "CarVault <no-reply@carvault.local>";
 
 //some hosts block smtp ports (render free plan does), brevo can send over a normal https request instead
-const sendWithBrevo = async (to, subject, text) => {
+const sendWithBrevo = async (to, subject, text, html) => {
   //MAIL_FROM looks like: CarVault <me@gmail.com>
   const match = fromAddress().match(/^(.*)<(.+)>$/);
   const sender = match ? { name: match[1].trim(), email: match[2].trim() } : { email: fromAddress().trim() };
@@ -38,7 +38,8 @@ const sendWithBrevo = async (to, subject, text) => {
   const res = await fetch("https://api.brevo.com/v3/smtp/email", {
     method: "POST",
     headers: { "api-key": process.env.BREVO_API_KEY, "content-type": "application/json", accept: "application/json" },
-    body: JSON.stringify({ sender, to: [{ email: to }], subject, textContent: text }),
+    //the plain text goes along with the html, for mail apps that only show text
+    body: JSON.stringify({ sender, to: [{ email: to }], subject, textContent: text, ...(html ? { htmlContent: html } : {}) }),
     signal: AbortSignal.timeout(10000),
   });
   if (!res.ok) {
@@ -46,9 +47,10 @@ const sendWithBrevo = async (to, subject, text) => {
   }
 };
 
-const sendMail = async (to, subject, text) => {
+//html is optional, the text is always sent too
+const sendMail = async (to, subject, text, html) => {
   if (process.env.BREVO_API_KEY) {
-    return sendWithBrevo(to, subject, text);
+    return sendWithBrevo(to, subject, text, html);
   }
 
   const info = await getTransporter().sendMail({
@@ -56,6 +58,7 @@ const sendMail = async (to, subject, text) => {
     to,
     subject,
     text,
+    html,
   });
   if (!process.env.SMTP_HOST) {
     //the text is printed too so a verification link can be copied while developing
