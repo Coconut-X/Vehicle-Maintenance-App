@@ -12,6 +12,7 @@ const dashboardRoutes = require("./routes/dashboardRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
 const userRoutes = require("./routes/userRoutes");
 const documentRoutes = require("./routes/documentRoutes");
+const reportRoutes = require("./routes/reportRoutes");
 const { notFound, errorHandler } = require("./middleware/errorMiddleware");
 const { startReminderJob } = require("./jobs/reminderJob");
 const { ensureCatalogue } = require("./utils/ensureCatalogue");
@@ -35,6 +36,8 @@ app.use(
       if (!origin || allowed.includes(origin)) return callback(null, true);
       callback(null, false);
     },
+    //the page needs to read the file name of a downloaded report
+    exposedHeaders: ["Content-Disposition"],
   })
 );
 
@@ -60,6 +63,7 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/documents", documentRoutes);
+app.use("/api/reports", reportRoutes);
 
 //these two must stay after all routes
 app.use(notFound);

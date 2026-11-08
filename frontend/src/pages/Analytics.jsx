@@ -8,6 +8,7 @@ import ErrorNote from '../components/ErrorNote'
 import Loading from '../components/Loading'
 import Select from '../components/Select'
 import Telltale from '../components/Telltale'
+import ReportBuilder from '../components/ReportBuilder'
 import { btnPrimary, labelClass } from '../components/ui'
 
 //"2026-03" to "Mar"
@@ -208,6 +209,9 @@ function Analytics() {
           </ul>
         </>
       )}
+
+      {/*the report is for one car and has its own car choice, so it shows whenever there is a car*/}
+      {vehicles.length > 0 && <ReportBuilder key={vehicles[0]._id} vehicles={vehicles} startVehicleId={vehicleId} />}
     </div>
   )
 }
